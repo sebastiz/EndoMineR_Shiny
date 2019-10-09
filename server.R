@@ -170,7 +170,7 @@ server <- function(input, output,session) {
   #########:::::Table Create- mergedtable#############
   output$mergedTable = DT::renderDT({
     shiny::validate(
-      need(nrow(RV3$data) > 0, "Make sure you have selected date and hospital number in both datasets then merge")
+      need(nrow(RV3$data) > 0, "")
     ) 
     if (!is.null(RV3$data)) {  
       
