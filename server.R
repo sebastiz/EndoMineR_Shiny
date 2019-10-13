@@ -17,6 +17,10 @@ library(plotly)
 library(ggTimeSeries)
 library(shinyWidgets)
 library(profvis)
+library(shinyalert)
+
+
+
 
 
 # Define server logic required to draw a histogram
@@ -39,12 +43,16 @@ BarrDDR_Table <- reactiveValues(data = data.frame())
 CustomData <- reactiveValues(data = data.frame())
 CustomTrim <- reactiveValues(data = data.frame())
 GRS_TableData <- reactiveValues(data = data.frame())
+ForGRS <- reactiveValues(data = data.frame())
+
+
 
 
 
 server <- function(input, output,session) {
 
-
+  addCssClass(class = "bttn bttn-unite bttn-default bttn-no-outline", 
+              selector = ".btn-file")
 
   
   setBookmarkExclude(c(  
@@ -102,9 +110,12 @@ server <- function(input, output,session) {
       dataFile <- read_excel(inFile_endoscopy$datapath, sheet=1)
       dat <- data.frame(EndoPaste(dataFile)[1], stringsAsFactors=FALSE)
       RV$data<-dat
+      
+      enable("textPrep")
 
       
     }
+    else{disable("textPrep")}
   })
   
 
@@ -138,8 +149,9 @@ server <- function(input, output,session) {
       dataFile <- read_excel(inFile_path$datapath, sheet=1)
       dat <- data.frame(EndoPaste(dataFile)[1], stringsAsFactors=FALSE)
       RV2$data<-dat
-      
+      enable("textPrep")
     }
+    else{disable("textPrep")}
   })
   
   
@@ -163,7 +175,9 @@ server <- function(input, output,session) {
       dataFile <- read_excel(inFile_merged$datapath, sheet=1)
       dat <- data.frame(EndoPaste(dataFile)[1], stringsAsFactors=FALSE)
       RV3$data<-dat
+      enable("textPrep")
     }
+    else{disable("textPrep")}
   })
   
   
@@ -261,6 +275,7 @@ server <- function(input, output,session) {
 
   #Standardise the date Dataset 1
   observeEvent(input$DateStandardiserEndo,{
+    #browser()
     RV$data[,as.numeric(input$endotable_columns_selected)]<-parse_date_time(str_extract(RV$data[,as.numeric(input$endotable_columns_selected)],
                                                                                         "(\\d{4}[[:punct:]]\\d{2}[^:alnum:]\\d{2})|(\\d{2}[^:alnum:]\\d{2}[^:alnum:]\\d{4})"),
                                                                             orders = c("dmy", "ymd"))
@@ -288,7 +303,7 @@ server <- function(input, output,session) {
     mywordsOGD<-unlist(strsplit(mywordsOGD,","))
     
    
-    RV$data<-textPrep(RV$data[,1],mywordsOGD)
+    RV$data<-withProgress(message = 'Splitting the data...spell checking....term mapping against lexicons.....cleaning columns....formatting columns...',textPrep(RV$data[,1],mywordsOGD))
     
     #Try type conversion here:
     RV$data<-type.convert(RV$data)
@@ -421,7 +436,7 @@ server <- function(input, output,session) {
   observeEvent(input$textPrepPath,{
     mywordsOGD<-input$captionPath
     mywordsOGD<-unlist(strsplit(mywordsOGD,","))
-    RV2$data<-textPrep(RV2$data[,1],mywordsOGD)
+    RV2$data<-withProgress(message = 'Splitting the data...spell checking....term mapping against lexicons.....cleaning columns....formatting columns...',textPrep(RV2$data[,1],mywordsOGD))
     
     #Try type conversion here:
     RV2$data<-type.convert(RV2$data)
@@ -437,10 +452,11 @@ server <- function(input, output,session) {
   
   ###########::::: Button-textPrep ###########
   
+  
   observeEvent(input$textPrepMerge,{
     mywordsOGD<-input$captionMerge
     mywordsOGD<-unlist(strsplit(mywordsOGD,","))
-    RV3$data<-textPrep(RV3$data[,1],mywordsOGD)
+    RV3$data<-withProgress(message = 'Splitting the data',textPrep(RV3$data[,1],mywordsOGD))
     
     #Try type conversion here:
     RV3$data<-type.convert(RV3$data)
@@ -448,6 +464,29 @@ server <- function(input, output,session) {
   },ignoreInit = TRUE)
   
   ############::::: Button- EndoMerge############
+  
+  
+  output$DS1_DateChooser <- renderUI(
+    selectInput("DS1_DateChooserIn","Select the Date column for the first dataset", choices=
+                  colnames(RV$data))
+  )
+  
+  output$DS1_HospNumChooser <- renderUI(
+    selectInput("DS1_HospNumChooserIn","Select the Hospital column for the first dataset", choices=
+                  colnames(RV$data))
+  )
+  
+  output$DS2_DateChooser <- renderUI(
+    selectInput("DS2_DateChooserIn","Select the Date column for the second dataset", choices=
+                  colnames(RV2$data))
+  )
+  
+  output$DS2_HospNumChooser <- renderUI(
+    selectInput("DS2_HospNumChooserIn","Select the Hospital column for the second dataset", choices=
+                  colnames(RV2$data))
+  )
+  
+
 
   observeEvent(input$Endomerge2,{
     #Merge the patientID column and date from each table. Make sure that the patient ID is chosen first;
@@ -457,16 +496,50 @@ server <- function(input, output,session) {
 
     #browser()
     
-    RV3$data<-Endomerge2(RV$data,colnames(RV$data[as.numeric(input$endotable_columns_selected[1])]),
-                         colnames(RV$data[as.numeric(input$endotable_columns_selected[2])]),
+    #Need to validate the columns here first
+    
+    #Converting the chosen columns to the correct format:
+    RV$data[input$DS1_DateChooserIn]<-parse_date_time(str_extract(RV$data[,input$DS1_DateChooserIn],
+                                                                                        "(\\d{4}[[:punct:]]\\d{2}[^:alnum:]\\d{2})|(\\d{2}[^:alnum:]\\d{2}[^:alnum:]\\d{4})"),
+                                                                            orders = c("dmy", "ymd"))
+    
+    RV2$data[input$DS2_DateChooserIn]<-parse_date_time(str_extract(RV2$data[,input$DS2_DateChooserIn],
+                                                                  "(\\d{4}[[:punct:]]\\d{2}[^:alnum:]\\d{2})|(\\d{2}[^:alnum:]\\d{2}[^:alnum:]\\d{4})"),
+                                                      orders = c("dmy", "ymd"))
+    
+    
+    
+    RV$data[input$DS1_HospNumChooserIn]<-str_extract(RV$data[,input$DS1_HospNumChooserIn],
+                                                                        "([a-z0-9]\\d{4,}[a-z0-9])")
+    
+    RV2$data[input$DS2_HospNumChooserIn]<-str_extract(RV2$data[,input$DS2_HospNumChooserIn],
+                                                                        "([a-z0-9]\\d{4,}[a-z0-9])")
+    
+    RV3$data<-withProgress(message = 'Splitting the data',
+    Endomerge2(RV$data,
+                         colnames(RV$data[input$DS1_DateChooserIn]),
+                         colnames(RV$data[input$DS1_HospNumChooserIn]),
                          RV2$data,
-                         colnames(RV2$data[as.numeric(input$pathTable_columns_selected[1])]),
-                         colnames(RV2$data[as.numeric(input$pathTable_columns_selected[2])]))
+                         colnames(RV2$data[input$DS2_DateChooserIn]),
+                         colnames(RV2$data[input$DS2_HospNumChooserIn]))
+    )
     
-
-    RV4$data<- RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "columnar.*?lined.*?\\.|barrett")),]
     
-    RV3$data<-RV3$data[,1:ncol(RV3$data)-1]
+    
+    
+     # RV3$data<-Endomerge2(RV$data,colnames(RV$data[as.numeric(input$endotable_columns_selected[1])]),
+     #                      colnames(RV$data[as.numeric(input$endotable_columns_selected[2])]),
+     #                      RV2$data,
+     #                      colnames(RV2$data[as.numeric(input$pathTable_columns_selected[1])]),
+     #                      colnames(RV2$data[as.numeric(input$pathTable_columns_selected[2])]))
+     
+     
+     RV4$data<- RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "columnar.*?lined.*?\\.|barrett")),]
+     
+     RV3$data<-RV3$data[,1:ncol(RV3$data)-1]
+     
+     mypolypdata1<- RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "polyp")),]
+     polypData$data <- mypolypdata1[Reduce(`|`, lapply(mypolypdata1, grepl, pattern = "colonoscopy")),]
     
 
   },ignoreInit = TRUE)
@@ -494,16 +567,34 @@ server <- function(input, output,session) {
 
   #Standardise the Categorical data
   observeEvent(input$CategoricalDataMerge,{
+    #browser()
+    
+    
+    if(length(input$mergedTable_columns_selected)==1){
     RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-as.factor(RV3$data[,as.numeric(input$mergedTable_columns_selected)])
+    }
+    else{
+      shinyalert("Oops!", "Please select one (and only one) categorical column (ie groupable) from the datatable by clicking on the column", type = "error")
+    }
+    
+    
 
   },ignoreInit = TRUE)
+  
+
   
   ############::::: Button- Numeric standardiser############
   
   #Standardise the Numbers as numeric in Endoscopy
   observeEvent(input$NumericDataMerge,{
-    RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-as.numeric(str_extract(RV3$data[,as.numeric(input$mergedTable_columns_selected)],
-                                                                                      "[0-9]+"))
+      
+      if(length(input$mergedTable_columns_selected)==1){
+        RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-as.numeric(str_extract(RV3$data[,as.numeric(input$mergedTable_columns_selected)], "[0-9]+"))
+      }
+      else{
+        shinyalert("Just one number column at a time!", "Please select one (and only one) numeric column from the datatable by clicking on the column", type = "error")
+      }
+    
 
 
   },ignoreInit = TRUE)
@@ -513,11 +604,22 @@ server <- function(input, output,session) {
   
   #Negex Remove
   observeEvent(input$NegExMerge,{
-    standardisedTextOutput<-str_split(RV3$data[,as.numeric(input$mergedTable_columns_selected)], "\\.")
-    standardisedTextOutput<-lapply(standardisedTextOutput, function(x) NegativeRemove(x))
-
-    RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-unlist(lapply(standardisedTextOutput, function(x) paste0(unlist(x),collapse=" ")))
-
+    
+   
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      
+      standardisedTextOutput<-str_split(RV3$data[,as.numeric(input$mergedTable_columns_selected)], "\\.")
+      standardisedTextOutput<-lapply(standardisedTextOutput, function(x) NegativeRemove(x))
+      
+      RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-unlist(lapply(standardisedTextOutput, function(x) paste0(unlist(x),collapse=" ")))
+    }
+    else{
+      shinyalert("Just one column needed here!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+    
+    
+    
     
   },ignoreInit = TRUE)
   
@@ -526,12 +628,21 @@ server <- function(input, output,session) {
   ############::::: Button- Regex############
   
   observeEvent(input$regexSearch_ok,{
-    #Need to bring up modal from here first to get the input$new_name as a renderui component
-    #browser()
-    myInterim<-str_extract_all(RV3$data[,as.numeric(input$mergedTable_columns_selected)],input$regexSearch)
-    NewCol<-as.character(lapply(myInterim,function(x) unlist(x)))
     
-    RV3$data<-cbind(NewCol,RV3$data)
+    
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      myInterim<-str_extract_all(RV3$data[,as.numeric(input$mergedTable_columns_selected)],input$regexSearch)
+      NewCol<-as.character(lapply(myInterim,function(x) unlist(x)))
+      
+      RV3$data<-cbind(NewCol,RV3$data)
+    }
+    else{
+      shinyalert("Oops!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+    
+    
+
     
     
   },ignoreInit = TRUE)
@@ -551,9 +662,19 @@ server <- function(input, output,session) {
   #Extract the endoscopist
   observeEvent(input$EndoscEndoscopistMerge,{
     #browser()
+    
+
+    
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-EndoscEndoscopist(RV3$data[,as.numeric(input$mergedTable_columns_selected)])
+    }
+    else{
+      shinyalert("Oops!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+    
 
     #RV$data[,as.numeric(input$endotable_columns_selected)]
-    RV3$data[,as.numeric(input$mergedTable_columns_selected)]<-EndoscEndoscopist(RV3$data[,as.numeric(input$mergedTable_columns_selected)])
 
   },ignoreInit = TRUE)
   
@@ -562,7 +683,18 @@ server <- function(input, output,session) {
   
   #Extract the medication  
   observeEvent(input$EndoscMedsMerge,{
-    RV3$data<-cbind(EndoscMeds(RV3$data[,as.numeric(input$mergedTable_columns_selected)]),RV3$data)
+    
+     
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      RV3$data<-cbind(EndoscMeds(RV3$data[,as.numeric(input$mergedTable_columns_selected)]),RV3$data)    }
+    else{
+      shinyalert("Oops!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+    
+    
+    
+
 
   },ignoreInit = TRUE)
   
@@ -571,7 +703,17 @@ server <- function(input, output,session) {
   
   #Extract the instrument
   observeEvent(input$EndoscInstrumentMerge,{
-    RV3$data$mergedTable_columns_selected<-EndoscInstrument(RV3$data[,as.numeric(input$mergedTable_columns_selected)])
+
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      RV3$data$mergedTable_columns_selected<-EndoscInstrument(RV3$data[,as.numeric(input$mergedTable_columns_selected)])   
+      }
+    else{
+      shinyalert( "Oops!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+    
+    
+    
 
   },ignoreInit = TRUE)
   
@@ -582,6 +724,7 @@ server <- function(input, output,session) {
   
   #Extract the endoscopic events
   observeEvent(input$EndoEventModalbtn,{
+    
     RV3$data$EndoscopyEvent<-EndoscopyEvent(RV3$data, input$EndoEventcol_selFindings, 
     input$EndoEventColSelect_colProcPerf,
     input$EndoEventColSelect_colMacroDescript, 
@@ -686,8 +829,19 @@ server <- function(input, output,session) {
   
   #Extract the number of biopsies  
   observeEvent(input$NumBxModal_ok,{
+    
+
+    
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      RV3$data$NumBx<-HistolNumbOfBx(RV3$data[,as.numeric(input$mergedTable_columns_selected)],input$new_name)    }
+    else{
+      shinyalert("Oops!", "Oops!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+    
+    
     #Need to bring up modal from here first to get the input$new_name as a renderui component
-    RV3$data$NumBx<-HistolNumbOfBx(RV3$data[,as.numeric(input$mergedTable_columns_selected)],input$new_name)
+
   },ignoreInit = TRUE)
   
   
@@ -695,7 +849,16 @@ server <- function(input, output,session) {
   
   #Extract the biopsy size
   observeEvent(input$BxSizeMerge,{
-    RV3$data$BxSize<-HistolBxSize(RV3$data[,as.numeric(input$mergedTable_columns_selected)])
+    
+    if(length(input$mergedTable_columns_selected)==1){
+      RV3$data$BxSize<-HistolBxSize(RV3$data[,as.numeric(input$mergedTable_columns_selected)])
+      }
+    else{
+      shinyalert("Oops!", "Oops!", "Please select one (and only one) text column from the datatable by clicking on the column", type = "error")
+    }
+  
+    
+    
   },ignoreInit = TRUE) 
   
   
@@ -896,14 +1059,10 @@ server <- function(input, output,session) {
   
   ########### Barrett's  ############
   
-  
-  
-  
-  
   #########::::: Table Create- BarrettsTable#############  
   output$BarrettsTable = DT::renderDT({
     #Create a copy that can be independently edited for the Barrett's table
-    RV4$data<-RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "columnar.*?lined.*?\\.|barrett")),]
+    RV4$data
     
     
   },filter = 'top',selection = list(target = 'column'),extensions = 'Buttons', options = list(
@@ -936,29 +1095,26 @@ server <- function(input, output,session) {
   
   output$Barr_DDRColSelect_colEndoscopist <- renderUI(
     selectInput("DDRColSel_colEndoscopist","Select the Endoscopist column", choices= 
-                  colnames(BarrTrim$data))
+                  colnames(RV4$data))
   )
   
 
   output$Barr_DDRColSelect_colHistol <- renderUI(
     selectInput("DDRColSel_colHistol","Select the Histology column (called IMorNoIM- to get this run rhe PathStage button on the working set first", choices= 
-                  colnames(BarrTrim$data))
+                  colnames(RV4$data))
   )
   
   output$Barr_DDRColSelect_colEndoFindings <- renderUI(
     selectInput("DDRColSel_colEndoFindings","Select the Endoscopy Findings column", choices= 
-                  colnames(BarrTrim$data))
+                  colnames(RV4$data))
   )
   
   #Extract the endoscopic events
   observeEvent(input$Barr_DDRModalbtn,{
     
-    #browser()
-    
-    #BarrDDR_TableData$data$IMorNoIM<<-Barretts_PathStage(RV4$data[input$BarrettsTable_rows_all,],input$DDRColSel_colHistol)
-
     DDRTable<-RV4$data%>%group_by(!!rlang::sym(input$DDRColSel_colEndoscopist),!!rlang::sym(input$DDRColSel_colHistol))%>%dplyr::summarise(n=n())    
     BarrDDR_TableData$data<-DDRTable%>%spread(input$DDRColSel_colHistol, n)
+    
   },ignoreInit = TRUE)
   
   ############::::: BarrDDR_Table Create ############
@@ -1002,7 +1158,7 @@ server <- function(input, output,session) {
     fixedHeader=TRUE,
     scrollX = TRUE,
     scrollY = TRUE,
-    pageLength = 5,
+    pageLength = 1,
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print','colvis')))
   
@@ -1014,13 +1170,21 @@ server <- function(input, output,session) {
   callModule(module = esquisserServer, id = "esquisseBarr", data = BarrTrim)  
   
   ############::::: Button Prague score ############
+  output$PragueScoreEndoscopicChooser1 <- renderUI(
+    selectInput("PragueScoreEndoscopicChooser1In","Select the endoscopy Findings column", choices= 
+                  colnames(RV4$data))
+  )
   
-   observeEvent(input$PragueScore,{
-     #browser()
-     cols <- as.numeric(input$BarrettsTable_columns_selected)
-     selectedCol<-colnames(RV4$data)[cols]
+  output$PragueScoreEndoscopicChooser2 <- renderUI(
+    selectInput("PragueScoreEndoscopicChooser2In","Select another Endoscopy Findings column if available (or just the same as the one above)", choices= 
+                  colnames(RV4$data))
+  )
+  
+  
+   observeEvent(input$PragueScoreModalbtn,{
+    # browser()
      #Need to get rid of the mytext column as it is a list and it messes up the esquiss graphics
-     RV4$data<-Barretts_PragueScore(RV4$data, selectedCol[1], selectedCol[2])
+     RV4$data<-Barretts_PragueScore(RV4$data, input$PragueScoreEndoscopicChooser1In, input$PragueScoreEndoscopicChooser2In)
      RV4$data$mytext<-NULL
      RV4$data$MStage<-as.numeric(RV4$data$MStage)
      RV4$data$CStage<-as.numeric(RV4$data$CStage)
@@ -1029,16 +1193,19 @@ server <- function(input, output,session) {
   
 
   ############::::: Button- Path stage  ############
-  
-  observeEvent(input$PathStage,{
+   output$PathStageChooser <- renderUI(
+     selectInput("PathStageChooserIn","Select the Histology column", choices= 
+                   colnames(RV4$data))
+   )
+   
+
+   
+   
+  observeEvent(input$PathStageModalbtn,{
     #browser()
-    cols <- as.numeric(input$BarrettsTable_columns_selected)
-    selectedCol<-colnames(RV4$data)[cols]
-    RV4$data$IMorNoIM<-Barretts_PathStage(RV4$data, selectedCol[1])
-    
-    
-    
-    #BarrDDR_Table
+
+    RV4$data$IMorNoIM<-Barretts_PathStage(RV4$data, input$PathStageChooserIn)
+  
   },ignoreInit = TRUE)
   
   
@@ -1053,12 +1220,23 @@ server <- function(input, output,session) {
   
 
   ############::::: Button- Surveillance Time  ############
+  output$SurveillanceChooser1 <- renderUI(
+    selectInput("SurveillanceChooser1In","Select the hospital number column", choices= 
+                  colnames(RV4$data))
+  )
   
+  output$SurveillanceChooser2 <- renderUI(
+    selectInput("SurveillanceChooser2In","Select the procedure date column", choices= 
+                  colnames(RV4$data))
+  )
 
-  observeEvent(input$SurveillanceTime,{
-    cols <- as.numeric(input$BarrettsTable_columns_selected)
-    selectedCol<-colnames(RV4$data)[cols]
-    RV4$data<-SurveilTimeByRow(RV4$data, selectedCol[1],selectedCol[2])
+  observeEvent(input$SurveillanceTimeModalbtn,{
+    #browser()
+    tryCatch({
+    RV4$data<-SurveilTimeByRow(RV4$data, input$SurveillanceChooser1In,input$SurveillanceChooser2In)
+  }, error=function(e) {
+    shinyalert("Looks like.....", "something isnt right. Try selecting the two columns as per the hover instructions")
+  })
   },ignoreInit = TRUE)
   
 
@@ -1068,7 +1246,7 @@ server <- function(input, output,session) {
   
   output$endoscopistCol<-renderUI({
     selectInput("endoscopistColChooser", label = h4("Choose the column showing the endoscopist:"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
@@ -1080,7 +1258,7 @@ server <- function(input, output,session) {
   
   output$worstGradeCol<-renderUI({
     selectInput("WorstGradeChooser", label = h4("Choose the column showing the worst grade"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
@@ -1090,7 +1268,7 @@ server <- function(input, output,session) {
   
   output$endoDoc_documentqual<-renderUI({
     selectInput("endoDoc_documentqualChoose", label = h4("Choose the endoscopic documentation column"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
@@ -1104,16 +1282,16 @@ server <- function(input, output,session) {
   output$plotBarrEQ <- renderPlotly({
     #browser()
     #Perform the lookup from EndoMiner for "[Ii]sland", Prague Score, "[Hh]iat|astric fold|[Pp]inch", "esion|odule|lcer"
-    if(!is.null(BarrTrim$data)){
-      if(ncol(BarrTrim$data>0)){
-        if(nrow(BarrTrim$data>0)){
+    if(!is.null(RV4$data)){
+      if(ncol(RV4$data>0)){
+        if(nrow(RV4$data>0)){
     shiny::validate(
       need(length(input$DDRColSel_colEndoscopist) > 0, "Press Barr_DDR to get the plots")
     ) 
-    Hiatus<-BarrTrim$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Hiatus = (sum(grepl("[Hh]iatus|[Ii]sland", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
-    Island<-BarrTrim$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Island = (sum(grepl("[Ii]sland", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
-    Pinch<-BarrTrim$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Pinch = (sum(grepl("[Pp]inch", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
-    Lesion<-BarrTrim$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Lesion = (sum(grepl("esion|odule|lcer", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
+    Hiatus<-RV4$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Hiatus = (sum(grepl("[Hh]iatus|[Ii]sland", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
+    Island<-RV4$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Island = (sum(grepl("[Ii]sland", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
+    Pinch<-RV4$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Pinch = (sum(grepl("[Pp]inch", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
+    Lesion<-RV4$data %>% group_by(!! rlang::sym(input$DDRColSel_colEndoscopist)) %>% summarise(Lesion = (sum(grepl("esion|odule|lcer", !!rlang::sym(input$DDRColSel_colEndoFindings))) / dplyr::n()) * 100)
     FinalTable <-
       full_join(Hiatus, Island, by = input$DDRColSel_colEndoscopist)
     FinalTable <-
@@ -1126,36 +1304,41 @@ server <- function(input, output,session) {
     FinalTable <- data.frame(FinalTable)
     
     #Need to gather the table to make tidy for ggplot
-    FinalTable<-tidyr::gather(FinalTable,key="DocumentedElement",value="PercentDocs",--!!rlang::sym(input$DDRColSel_colEndoscopist))
+    FinalTable<-tidyr::gather(FinalTable,key="DocumentedElement",value="PercentDocs",-!!rlang::sym(input$DDRColSel_colEndoscopist))
+    key <- input$DDRColSel_colEndoscopist
+    p<-ggplot(FinalTable,  aes_string(x = key,y="PercentDocs",fill="DocumentedElement")) + 
+      geom_bar(stat="identity")+
+      theme(axis.text.x=element_text(angle=-90))
+    ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
     
-    ggplot(FinalTable,  aes(x = DocumentedElement,fill=input$DDRColSel_colEndoscopist)) + 
-      geom_histogram(stat = "count")
       
         }
       }}
-      
     
-  })
+  }
+  )
   
   
   ############:::::  Plot Quality Endoscopist vs Worst grade Plot  ############
   
   output$plotBarrQM <- renderPlotly({
-    if(!is.null(BarrTrim$data)){
-      if(ncol(BarrTrim$data>0)){
-        if(nrow(BarrTrim$data>0)){
+    
+    #browser()
+    if(!is.null(RV4$data)){
+      if(ncol(RV4$data>0)){
+        if(nrow(RV4$data>0)){
           shiny::validate(
             need(length(input$DDRColSel_colEndoscopist) > 0, "Press Barr_DDR to get the plots")
           ) 
     key <- input$DDRColSel_colEndoscopist
-   
-   p<-ggplot(BarrTrim$data,  aes_string(x = input$DDRColSel_colHistol,fill=key)) + 
+   p<-ggplot(RV4$data,  aes_string(x = input$DDRColSel_colHistol,fill=key)) + 
       geom_histogram(stat = "count")
    ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
    
       
-        }
-      }}
+       }
+      }
+   }
   })
   
 
@@ -1176,7 +1359,7 @@ server <- function(input, output,session) {
   
   output$HospNumBarrTheo<-renderUI({
     selectInput("HospNumBarrTheoChooser", label = h4("Choose the column containing the hospital numbers"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
@@ -1184,7 +1367,7 @@ server <- function(input, output,session) {
   
   output$DatesBarrTheo<-renderUI({
     selectInput("DateColChooserBarrTheoChooser", label = h4("Choose the column containing the (formatted) dates of the endoscopies"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
@@ -1192,14 +1375,14 @@ server <- function(input, output,session) {
   
   
   output$plotBarrPT <- renderPlotly({
-    if(!is.null(BarrTrim$data)){
+    if(!is.null(RV4$data)){
     
     #browser()
     #Create a column with factors for the worst grade
-    BarrTrim$data$RecodedColumn<-as.integer(factor(RV4$data$IMorNoIM, c("No_IM","IM","LGD","HGD","T1a","IGD","SM1","SM2"), ordered = TRUE))
+      RV4$data$RecodedColumn<-as.integer(factor(RV4$data$IMorNoIM, c("No_IM","IM","LGD","HGD","T1a","IGD","SM1","SM2"), ordered = TRUE))
     
     #Only select patients where there is more than one endoscopy:
-    bb<-BarrTrim$data %>% group_by(!! rlang::sym(input$HospNumBarrTheoChooser)) %>% filter(n() > 2)
+    bb<-RV4$data %>% group_by(!! rlang::sym(input$HospNumBarrTheoChooser)) %>% filter(n() > 2)
     
     #Now use the user defined date and patient ID columns to make the theographs
     
@@ -1218,18 +1401,19 @@ server <- function(input, output,session) {
   ############:::::  Chooser -Date EndoUtilisation############
   output$Date_endoscopyutilisationBarr<-renderUI({
     selectInput("Date_endoscopyutilisationChooserBarr", label = h4("Choose the column showing the date"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
   ############:::::  Plot-EndoUtilisation Plot ############
   
   output$endoscopyUse_EndoscopyUseBarr <- renderPlotly({
-    
-    if(!is.null(BarrTrim$data)){
+    #browser()
+    if(!is.null(RV4$data)){
+      #validate(req(input$Date_endoscopyutilisationChooserBarr))
     #Create the grouped table here of the number of endoscopies done by day
     #Then perform as per below
-    dtData<-BarrTrim$data %>% group_by(!!rlang::sym(input$Date_endoscopyutilisationChooserBarr)) %>% dplyr::summarise(n = n())
+    dtData<-RV4$data %>% group_by(!!rlang::sym(input$Date_endoscopyutilisationChooserBarr)) %>% dplyr::summarise(n = n())
     # base plot
     
     #Get rid of NA's as they mess things up.
@@ -1258,7 +1442,7 @@ server <- function(input, output,session) {
   
   output$endoscopicEventBarr<-renderUI({
     selectInput("endoscopicEventColChooserBarr", label = h4("Choose the column containing the events of interest"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
@@ -1268,21 +1452,33 @@ server <- function(input, output,session) {
   
   output$DatesBarr<-renderUI({
     selectInput("DateColChooserBarr", label = h4("Choose the column containing the (formatted) dates of the endoscopies"),
-                choices = colnames(BarrTrim$data) ,selected = 1
+                choices = colnames(RV4$data) ,selected = 1
     )
   })
   
+  ############:::::  Button - TimeSeriesAnalysis   ############
   
+  observeEvent(input$EndoBarrUtilisation_btn,{
+    #browser()
+
+    
+  },ignoreInit = TRUE)
+  
+  
+
   ############:::::  Plot-Time Series Analysis Plot ############
   
   output$plotBarrTSA <- renderPlotly({
-    ####Need to deal with this one:
-    if(!is.null(BarrTrim$data)){
-    
+    ####Need to deal with this one:- do something like if both input boxes are the same then dont plot anything (as they both come up with 
+    #the first in the columns by default)
+    #browser()
+    if(!is.null(RV4$data)){
+    #if(!is.null(RV4$data)){
+      #validate(req(input$Date_endoscopyutilisationChooserBarr))
     #browser()
     Endo_ResultPerformeda <- sym(input$Date_endoscopyutilisationChooserBarr)
     TestNumbers <-
-      BarrTrim$data %>% group_by(!! rlang::sym(input$endoscopicEventColChooserBarr)) %>% 
+      RV4$data %>% group_by(!! rlang::sym(input$endoscopicEventColChooserBarr)) %>% 
       arrange(as.Date(!!Endo_ResultPerformeda)) %>% group_by(
         week = week(as.Date(!!Endo_ResultPerformeda)),
         month = month(as.Date(!!Endo_ResultPerformeda)),
@@ -1323,8 +1519,7 @@ server <- function(input, output,session) {
     #polypData$data
     
     #Create a copy that can be independently edited for the polyp table
-    mypolypdata1<- RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "polyp")),]
-    polypData$data <- mypolypdata1[Reduce(`|`, lapply(mypolypdata1, grepl, pattern = "colonoscopy")),]
+    polypData$data
     
   },filter = 'top',selection = list(target = 'column'),options = list(scrollX = TRUE,pageLength = 5,
                                                                       dom = 'Bfrtip',
@@ -1335,7 +1530,7 @@ server <- function(input, output,session) {
     #browser()
     if (length(input$polypTable_columns_selected)>1){
       polypTrim$data<- polypData$data[input$polypTable_rows_all, input$polypTable_columns_selected]
-    } else(BarrTrim$data<-NULL)
+    } else(polypTrim$data<-NULL)
     
   },ignoreInit = TRUE)
   
@@ -1344,12 +1539,13 @@ server <- function(input, output,session) {
   ############::::: Chooser- GRS_ADR column select for modal ############
   
   output$GRS_ADRColSelect_colEndoEndoscopist <- renderUI(
-    selectInput("GRS_ADRColSelect_colEndoEndoscopist","Select the Procedure performed column", choices= 
+    selectInput("ADRColSel_colEndoEndoscopist","Select the Endoscopist column", choices= 
+                  
                   colnames(RV3$data))
   )
   
   output$GRS_ADRColSelect_colProcPerf <- renderUI(
-    selectInput("ADRColSel_colProcPerf","Select the Endoscopist column", choices= 
+    selectInput("ADRColSel_colProcPerf","Select the Procedure performed column", choices= 
                   colnames(RV3$data))
   )
   
@@ -1367,9 +1563,15 @@ server <- function(input, output,session) {
   
   observeEvent(input$GRS_ADRModalbtn,{
     
-    #browser()
-    GRS_TableData$data<<-GRS_Type_Assess_By_Unit(polypData$data[input$polypTable_rows_all,], input$ADRColSel_colEndoEndoscopist,
-                                                 input$ADRColSel_colProcPerf,
+    browser()
+    #Need the overall colonoscopy count including the non polpy ones so will have to use RV3 as the main data set
+    # mypolypdata1<- RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "polyp")),]
+    # polypData$data <- mypolypdata1[Reduce(`|`, lapply(mypolypdata1, grepl, pattern = "colonoscopy")),]
+    # rtt<-data.frame(RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "colonoscopy")),])
+    ForGRS$data<-RV3$data[grepl("colonoscopy",RV3$data[,input$ADRColSel_colProcPerf]),]
+    
+    GRS_TableData$data<<-GRS_Type_Assess_By_Unit(ForGRS$data[input$polypTable_rows_all,], input$ADRColSel_colProcPerf,
+                                                 input$ADRColSel_colEndoEndoscopist,
                                                  input$ADRColSel_colMacroDescript,
                                                  input$ADRColSel_colHistol)
     
@@ -1432,7 +1634,15 @@ options = list(
   
   output$Date_endoscopyutilisationPolyp<-renderUI({
     selectInput("Date_endoscopyutilisationChooserPolyp", label = h4("Choose the column showing the date"),
-                choices = colnames(polypTrim$data) ,selected = 1
+                choices = colnames(polypData$data) ,selected = 1
+    )
+  })
+  
+  
+  ############:::::  Chooser- Endoscopy Utilisation Event  ############
+  output$endoscopicEventPolyp<-renderUI({
+    selectInput("endoscopicEventColChooserPolyp", label = h4("Choose the column containing the events of interest"),
+                choices = colnames(polypData$data) ,selected = 1
     )
   })
   
@@ -1442,8 +1652,10 @@ options = list(
   
   output$endoscopyUse_EndoscopyUsePolyp <- renderPlotly({
     
-    if(nrow(BarrTrim$data>0)){
-      if(ncol(BarrTrim$data>0)){
+    browser()
+    
+    if(nrow(polypData$data>0)){
+      if(ncol(polypData$data>0)){
     #Then perform as per below
     dtData<-polypData$data%>% group_by(!!rlang::sym(input$Date_endoscopyutilisationChooserPolyp)) %>% dplyr::summarise(n = n())
     # base plot
@@ -1470,12 +1682,7 @@ options = list(
 
 
   
-  ############:::::  Chooser- TimeSeries Analysis Event  ############
-  output$endoscopicEventPolyp<-renderUI({
-    selectInput("endoscopicEventColChooserPolyp", label = h4("Choose the column containing the events of interest"),
-                choices = colnames(polypTrim$data) ,selected = 1
-    )
-  })
+
   
   ############:::::  Chooser- TimeSeries Analysis Date  ############
   
@@ -1492,8 +1699,8 @@ options = list(
   
   output$plotPolypTSA <- renderPlotly({
     
-    if(nrow(BarrTrim$data>0)){
-      if(ncol(BarrTrim$data>0)){
+    if(nrow(polypData$data>0)){
+      if(ncol(polypData$data>0)){
     ####Need to deal with this one:
     
     #browser()
