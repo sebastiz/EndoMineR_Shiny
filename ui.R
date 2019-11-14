@@ -68,8 +68,18 @@ dashboardPage(
   ),
  
    dashboardSidebar(collapsed = TRUE
-     
-  ),
+                    # sidebarMenu(
+                    #   # Setting id makes input$tabs give the tabName of currently-selected tab
+                    #   id = "tabs",
+                    #   menuItem("Custom", tabName = "Custom", icon = icon("dashboard")),
+                    #   menuItem("Barretts", icon = icon("th"), tabName = "widgets"),
+                    #   menuItem("Polyps", icon = icon("th"), tabName = "widgets"),
+                    #   menuItem("IBD", icon = icon("bar-chart-o")),
+                    #   menuItem("Per Endoscopist", icon = icon("th"), tabName = "widgets")
+                    #            
+                    #   
+                    # )
+   ),
 
  
   dashboardBody(
@@ -96,6 +106,8 @@ dashboardPage(
                                box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "B. Split the data",
                                textInput("caption", "", "Enter the comma separated headers here"),
                                actionBttn("textPrep",label = "Split",size="sm"),
+                               
+
                                 bsPopover ("textPrep", "Split the text: Enter the headers from the text separated by a comma to split according to the headers", placement = "bottom", trigger = "hover",
                                          options = NULL),
                                HTML('&nbsp;'),
@@ -150,7 +162,7 @@ dashboardPage(
                                DT::dataTableOutput("pathTable")),
 
 # Final Dataset  ----------------------------------------------------
-
+#########]]]]] Button - Text dataset merge #############
                bsCollapsePanel("Final Dataset (to merge dataset 1 & 2 or upload a pre-merged dataset)", "", 
                                fluidRow(column(4),
                                         column(4,
@@ -158,8 +170,7 @@ dashboardPage(
                                  inputId = "Endomerge2Me",
                                  label = "Text Dataset Merge",
                                  size="lg",
-                                 style = "material-flat",
-                                 icon = icon("sliders"),
+                                 style = "simple",
                                  block = TRUE
                                )),
                                bsModal("Endomerge2_modal", "Merge it", "Endomerge2Me", size = "small",
@@ -172,7 +183,25 @@ dashboardPage(
                                          modalButton("Cancel"),
                                          actionBttn("Endomerge2", "OK",size="sm")
                                        )
+                               ),
+                               actionBttn("TermMapping",label = "Map your terms",size="sm"),
+                               bsModal("TermMapping_Modal", "Merge it", "TermMapping", size = "small",
+                                       fluidRow(column(3),uiOutput("Map_HospitalNumber"),
+                                       uiOutput("Map_Endoscopist"),
+                                       uiOutput("Map_ProcedurePerformed"),
+                                       uiOutput("Map_EndoscopyDate")),
+                                       fluidRow(column(3),uiOutput("Map_Findings"),
+                                       uiOutput("Map_Findings2"),
+                                       uiOutput("Map_Events"),
+                                       uiOutput("Map_MacroscopicText"),
+                                       uiOutput("Map_MicroscopicText")),
+                                       
+                                       footer = tagList(
+                                         modalButton("Cancel"),
+                                       actionBttn("MapMe", "OK",size="sm")
+                                       )
                                )
+                               
                                ),
                                br(),
                                
@@ -232,18 +261,27 @@ dashboardPage(
                                      bsPopover ("NegExMerge", "Negative phrase deletion: Select only one text column to exclude all sentences with negative expressions", placement = "bottom", trigger = "hover",
                                                 options = NULL),
                                      HTML('&nbsp;'),
+                                    
+                                    ############]]]]]  Button - Image Merge############
                                      actionBttn("MergeWithImages",label = "Image Merge",size="sm"),
                                      bsPopover ("MergeWithImages", "Image Merge: Press here to merge with images. The images must be from a html export with hospital numbers and dates so they can be merged.", placement = "bottom", trigger = "hover",options = NULL),
                                      
-                                     bsModal("modalExampleImages", "Data Table1", "MergeWithImages", size = "large",
-                                             shinyFilesButton("Btn_GetFile", "Choose a file" ,
+                                     bsModal("modalExampleImages", "Image Merge menu", "MergeWithImages", size = "size",
+                                             shinyFilesButton("Btn_GetFileImage", "Choose the html file with the endoscopy details and pictures" ,
                                                               title = "Please select a file:", multiple = FALSE, buttonType = "default", class = NULL),
+                                             br(),br(), br(),
                                              textOutput("txt_file"),
-                                             textInput("captionDelim", "Which word separates the procedures", "delimiting word"),
-                                             textInput("captionImgFolder", "Get the Image folder", "Get the Image folder"),
+                                             br(), br(),br(), br(),
                                              
-                                             shinyDirButton('folder', 'Folder select', 'Please select a folder', FALSE),
+                                             textInput("captionDelim", "Which words or phrases in the html separates the procedures (eg 'Procedure Number:)", "delimiting word or phrase",width="45%"),
+                                             uiOutput("ImageMerge_DelimTextPickers"),
+                                             uiOutput("ImageMerge_DateChooser"),
+                                             uiOutput("ImageMerge_HospNumChooser"),
+                                             br(), br(), br(),
+                                             shinyDirButton('folder', 'Choose folder containing all the image', 'Please select a folder containing all the images (usually in the same parent folder as the html report)', FALSE),
+                                             br(),br(), br(),
                                              textOutput("folder_file"),
+                                             br(), br(),br(), br(),
                                              actionBttn("MergeImages",label = "Merge the images with your dataset",size="sm")),
                                      HTML('&nbsp;'),
                                      actionBttn(inputId = "Del_row_head",label = "Delete selected rows",size="sm"),
@@ -359,14 +397,14 @@ bookmarkButton()),
 tabPanel("Custom", tableOutput("table53"),
          
          #########]]]]]  Table Create- CustomTable############# 
-         bsCollapsePanel("Select columns from the Final Dataset and click to display here", "", 
-                         fluidRow(
-                           DT::dataTableOutput("CustomTable")
-                         )
-         ),
+         # bsCollapsePanel("Select columns from the Final Dataset and click to display here", "", 
+         #                 fluidRow(
+         #                   DT::dataTableOutput("CustomTable")
+         #                 )
+         # ),
          mainPanel(width = 100,
-                   navbarPage("Your analytics",
-                              
+                   navbarPage("",
+                              tabPanel("Data", DT::dataTableOutput("CustomTable")),
                               ############]]]]]  CustomTable Visualisation Esquiss ############
                               tabPanel("Visualise",
                                        tags$div(
@@ -418,58 +456,63 @@ tabPanel("Custom", tableOutput("table53"),
 
 
     tabPanel("Barrett's", tableOutput("table5"),
-          bsCollapsePanel("Barrett's Data", "", 
-             box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "Derive Barrett's data",br(), br(),
-             actionBttn("PragueScore",label = "PragueScore",size="sm"),
-              bsPopover ("PragueScore", "Prague Score: Select two columns with endoscopic findings to generate C and M stage where possible", placement = "bottom", trigger = "hover",options = NULL),
+          #bsCollapsePanel("Data", "", 
              
-              bsModal("PragueScoreModal", "Get the Prague score", "PragueScore", size = "small",
-                       uiOutput("PragueScoreEndoscopicChooser1"),
-                       uiOutput("PragueScoreEndoscopicChooser2"),
-                      footer = tagList(
-                        modalButton("Cancel"),
-                        actionBttn("PragueScoreModalbtn", "OK",size="sm")
-                      )),
-             
-             
-             
-             
-             actionBttn("PathStage",label = "PathStage",size="sm"),
-              bsPopover ("PathStage", "Worst Pathological Stage: Select the column with pathological findings to generate the worst pathological grade", placement = "bottom", trigger = "hover",options = NULL),
-             bsModal("PathStageModal", "Choose column to extract the worst Pathology", "PathStage", size = "small",
-                     uiOutput("PathStageChooser"),
-                     footer = tagList(
-                       modalButton("Cancel"),
-                       actionBttn("PathStageModalbtn", "OK",size="sm")
-                     )),
-             
-             
-             actionBttn("FollowUpType",label = "FollowUpType",size="sm"),
-              bsPopover ("FollowUpType", "Follow up type: Only press once the Prague score and Path stage buttons have extracted the relevant columns", placement = "bottom", trigger = "hover",options = NULL),
-             
-             actionBttn("SurveillanceTime",label="Surveillance Time", icon = icon("far fa-clock"),size="sm"),
-              bsPopover ("SurveillanceTime", "Surveillance Time: Select the hospital number and the date of the procedure columns in order to get the time since the last test", placement = "bottom", trigger = "hover",options = NULL),
-             bsModal("SurveillanceTimeModal", "Choose columns to get time from last surveillance endoscopy", "SurveillanceTime", size = "small",
-                     uiOutput("SurveillanceChooser1"),
-                     uiOutput("SurveillanceChooser2"),
-                     footer = tagList(
-                       modalButton("Cancel"),
-                       actionBttn("SurveillanceTimeModalbtn", "OK",size="sm")
-                     ))),
-             
-             #########]]]]] Table Create- BarrettsTable#############  
-             DT::dataTableOutput("BarrettsTable")
-          ),
           
           
           mainPanel(width = 100,
-                    navbarPage("Barretts analytics",
+                    navbarPage("",
+                             
+                               
+                               tabPanel("Data",
+                                        # box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "Derive Barrett's data",br(), br()
+                                        #     #actionBttn("BarrettsProcessbtn",label = "PragueScore",size="sm"),
+                                        #     #bsPopover ("BarrettsProcessbtn", "Prague Score: Select two columns with endoscopic findings to generate C and M stage where possible", placement = "bottom", trigger = "hover",options = NULL)
+                                        #     
+                                        #     # bsModal("PragueScoreModal", "Get the Prague score", "PragueScore", size = "small",
+                                        #     #         uiOutput("PragueScoreEndoscopicChooser1"),
+                                        #     #         uiOutput("PragueScoreEndoscopicChooser2"),
+                                        #     #         footer = tagList(
+                                        #     #           modalButton("Cancel"),
+                                        #     #           actionBttn("PragueScoreModalbtn", "OK",size="sm")
+                                        #     #         )),
+                                        #     
+                                        #     
+                                        #     
+                                        #     
+                                        #     # actionBttn("PathStage",label = "PathStage",size="sm"),
+                                        #     # bsPopover ("PathStage", "Worst Pathological Stage: Select the column with pathological findings to generate the worst pathological grade", placement = "bottom", trigger = "hover",options = NULL),
+                                        #     # bsModal("PathStageModal", "Choose column to extract the worst Pathology", "PathStage", size = "small",
+                                        #     #         uiOutput("PathStageChooser"),
+                                        #     #         footer = tagList(
+                                        #     #           modalButton("Cancel"),
+                                        #     #           actionBttn("PathStageModalbtn", "OK",size="sm")
+                                        #     #         )),
+                                        #     
+                                        #     
+                                        #     # actionBttn("FollowUpType",label = "FollowUpType",size="sm"),
+                                        #     # bsPopover ("FollowUpType", "Follow up type: Only press once the Prague score and Path stage buttons have extracted the relevant columns", placement = "bottom", trigger = "hover",options = NULL),
+                                        #     # 
+                                        #     # actionBttn("SurveillanceTime",label="Surveillance Time", icon = icon("far fa-clock"),size="sm"),
+                                        #     # bsPopover ("SurveillanceTime", "Surveillance Time: Select the hospital number and the date of the procedure columns in order to get the time since the last test", placement = "bottom", trigger = "hover",options = NULL),
+                                        #     # bsModal("SurveillanceTimeModal", "Choose columns to get time from last surveillance endoscopy", "SurveillanceTime", size = "small",
+                                        #     #         uiOutput("SurveillanceChooser1"),
+                                        #     #         uiOutput("SurveillanceChooser2"),
+                                        #     #         footer = tagList(
+                                        #     #           modalButton("Cancel"),
+                                        #     #           actionBttn("SurveillanceTimeModalbtn", "OK",size="sm")
+                                        #     #         ))
+                                        #     ),
+                                        
+                                        #########]]]]] Table Create- BarrettsTable#############  
+                                        DT::dataTableOutput("BarrettsTable")
+                               ),
                         tabPanel("Quality Metrics", sidebarPanel(width = 2,
                           
-                          ############]]]]]  BarrettsTable Event- EndoEvent standardiser############
-                          actionBttn("Barr_DDRbtn",label = "Barr_DDR",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                          bsPopover ("Barr_DDRbtn", "Barrett's Dysplasia detection: Select in order: Endoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
-                                     options = NULL),
+                          # ############]]]]]  BarrettsTable Event- EndoEvent standardiser############
+                          # actionBttn("Barr_DDRbtn",label = "Barr_DDR",icon = icon("fas fa-sort-numeric-up"),size="sm"),
+                          # bsPopover ("Barr_DDRbtn", "Barrett's Dysplasia detection: Select in order: Endoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
+                          #            options = NULL),
                           
                           
                           
@@ -550,32 +593,30 @@ tabPanel("Custom", tableOutput("table53"),
 
 # Polyps  ----------------------------------------------------
     tabPanel("Polyps", tableOutput("table3"),
-        bsCollapsePanel("Polyp Data", "", 
-                        
-             #########]]]]]  Table- polypTable#############  
-             DT::dataTableOutput("polypTable")
-        ),
+
         mainPanel(width = 100,
           
-          navbarPage("Polyp analytics",
-                      tabPanel("Quality metrics(ADR)", 
+          navbarPage("",
+                     tabPanel("Data",
+                              DT::dataTableOutput("polypTable")),
+                      tabPanel("Quality Metrics", 
                                ############]]]]]  Button - EndoEvent standardiser############
-                               actionBttn("GRS_ADRbtn",label = "GRS_ADR",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                               bsPopover ("GRS_ADRbtn", "GRS Table: Select in order: Endoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
+                               actionBttn("GRS_ADRModalbtn",label = "GRS_ADR",icon = icon("fas fa-sort-numeric-up"),size="sm"),
+                               bsPopover ("GRS_ADRModalbtn", "GRS Table: Select in order: Endoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
                                           options = NULL),
                                
                                ############]]]]]  Button - EndoEvent ADR column select for modal ############
-                               bsModal("GRS_ADRModal", "Get the adenoma detection rate", "GRS_ADRbtn", size = "small",
-                                       uiOutput("GRS_ADRColSelect_colProcPerf"),
-                                       uiOutput("GRS_ADRColSelect_colEndoEndoscopist"),
-                                       uiOutput("GRS_ADRColSelect_colMacroDescript"),
-                                       uiOutput("GRS_ADRColSelect_colHistol"),
-                                       footer = tagList(
-                                         modalButton("Cancel"),
-                                         uiOutput("ADRModalbtn"),
-                                         actionBttn("GRS_ADRModalbtn", "OK",size="sm")
-                                       )
-                               ),
+                               # bsModal("GRS_ADRModal", "Get the adenoma detection rate", "GRS_ADRbtn", size = "small",
+                               #         uiOutput("GRS_ADRColSelect_colProcPerf"),
+                               #         uiOutput("GRS_ADRColSelect_colEndoEndoscopist"),
+                               #         uiOutput("GRS_ADRColSelect_colMacroDescript"),
+                               #         uiOutput("GRS_ADRColSelect_colHistol"),
+                               #         footer = tagList(
+                               #           modalButton("Cancel"),
+                               #           uiOutput("ADRModalbtn"),
+                               #           actionBttn("GRS_ADRModalbtn", "OK",size="sm")
+                               #         )
+                               # ),
                                ############]]]]]  GRSTable Create ############
                                
                                DT::dataTableOutput("GRS_Table"),
@@ -611,8 +652,7 @@ tabPanel("Custom", tableOutput("table53"),
                                        plotlyOutput("endoscopyUse_EndoscopyUsePolyp"),
                                        ############]]]]]  PolypTable Plot- TimeSeries Analysis Plot ############
                                        plotlyOutput("plotPolypTSA")))),
-                      tabPanel("Theograph", plotOutput("plotPolypPF")),
-                               tabPanel("Test", plotlyOutput("plot2"))
+                      tabPanel("Theograph", plotOutput("plotPolypPF"))
           )
         )
     ),
@@ -620,16 +660,10 @@ tabPanel("Custom", tableOutput("table53"),
 # IBD  ----------------------------------------------------
     tabPanel("IBD", tableOutput("tableIBD"),
              
-        bsCollapsePanel("IBD Data", "", 
-             box(status = "warning", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "Derive IBD data",br(), br(),
-                 actionBttn("IBD",label = "IBD",size="sm")
-              ),
-             DT::dataTableOutput("IBD")
-        ),
         mainPanel(width = 100,
-          
-
-          navbarPage("IBD analytics",
+          navbarPage("",
+                     tabPanel("Data", 
+                     DT::dataTableOutput("IBD")),
                       tabPanel("Quality Metrics", plotOutput("plotIBDQM")),
                      tabPanel("Visualise",
                               radioButtons(
@@ -657,9 +691,46 @@ tabPanel("Custom", tableOutput("table53"),
           )
  
         )
-    )
+    ),
+tabPanel("Per Endoscopist Report",
+         mainPanel(width = 100,
+                   
+                   navbarPage("Endoscopist Dashboard",
+                              tabPanel(actionBttn("RunReport",label = "GetReport",icon = icon("fas fa-sort-numeric-up"),size="sm"),
+                                       # bsModal("PerformanceTable", "Merge it", "Btn_GetReport", size = "small",
+                                       #         uiOutput("Report_Endoscopist"),
+                                       #         uiOutput("Report_Findings"),
+                                       #         uiOutput("Report_Histopath"),
+                                       #         uiOutput("Report_URL"),
+                                       #         footer = tagList(
+                                       #           modalButton("Cancel"),
+                                       #           actionBttn("RunReport", "OK",size="sm")
+                                       #         )
+                                       # ),
+                              box(collapsible = T,collapsed=FALSE,
+                                title = "Results", status = "warning", solidHeader = TRUE, DT::dataTableOutput("performanceTable"),
+                                "Box content here", br(), "More box content"),
+                              
+                              box(collapsible = T,collapsed=FALSE,
+                                title = "Biopsies By Indication", status = "warning", solidHeader = TRUE,
+                                plotlyOutput("IndicsVsBiopsies"),                        
+                                "Box content here", br(), "More box content"),
+                              
+                              box(collapsible = T,collapsed=FALSE,
+                                title = "GRS", status = "warning", solidHeader = TRUE,DT::dataTableOutput("GRS_perEndoscopist_Table"),
+                                "Box content here", br(), "More box content"),
+                              
+                              box(collapsible = T,collapsed=FALSE,
+                                title = "Barrett's", status = "warning", solidHeader = TRUE,
+                                ############]]]]]  BarrettsTable Plot Quality Endoscopist vs Worst grade Plot  ############
+                                plotlyOutput("plotBarrQM_Perform"),
+                                ############]]]]]  BarrettsTable Plot-Quality Documentation quality Plot ############
+                                plotlyOutput("plotBarrEQ_Perform"),
+                                "Box content here", br(), "More box content")
+                              )
+                ))
+         )
     )
   )
 )
-
 )}
