@@ -15,6 +15,25 @@ library(shinyWidgets)
 library(shinyalert)
 
 
+# Module UI function
+textPrepUI <- function(id) {
+  # Create a namespace function using the provided id
+  ns <- NS(id)
+  
+  tagList(
+    textInput(ns("caption"), "", "Enter the comma separated headers here"),
+    actionBttn(ns("textPrep1"),label = "SplitMe",size="sm")
+    
+    
+    #bsPopover ("textPrep", "Split the text: Enter the headers from the text separated by a comma to split according to the headers", placement = "bottom", trigger = "hover",
+    #options = NULL)
+  )
+}
+
+
+
+
+
 
 
 ui <-function(request) {fluidPage(theme=shinytheme("simplex"),
@@ -68,17 +87,6 @@ dashboardPage(
   ),
  
    dashboardSidebar(collapsed = TRUE
-                    # sidebarMenu(
-                    #   # Setting id makes input$tabs give the tabName of currently-selected tab
-                    #   id = "tabs",
-                    #   menuItem("Custom", tabName = "Custom", icon = icon("dashboard")),
-                    #   menuItem("Barretts", icon = icon("th"), tabName = "widgets"),
-                    #   menuItem("Polyps", icon = icon("th"), tabName = "widgets"),
-                    #   menuItem("IBD", icon = icon("bar-chart-o")),
-                    #   menuItem("Per Endoscopist", icon = icon("th"), tabName = "widgets")
-                    #            
-                    #   
-                    # )
    ),
 
  
@@ -86,20 +94,21 @@ dashboardPage(
 
     tabsetPanel(type = "tabs",
                 tabPanel("Clean and Merge", verbatimTextOutput("summary"),
-                                          
-                         
-
                          # Dataset 1 ----------------------------------------------------
 
     bsCollapse(id = "collapseExample", open = "Panel 1",
-               
-                          
-               
                bsCollapsePanel("Dataset 1 (eg. Endoscopy results)", "",
-                               
                                #########]]]]] File upload- endotable#############
                                box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "A. Upload data",
                                    fileInput("FileIn_endoscopy",label="",multiple = FALSE),br()),
+                               
+                               
+                               
+                               
+                    
+                               
+                               
+                               
                                
                                
                                ###########]]]]] Endotable events-textPrep ############                               
@@ -107,7 +116,7 @@ dashboardPage(
                                textInput("caption", "", "Enter the comma separated headers here"),
                                actionBttn("textPrep",label = "Split",size="sm"),
                                
-
+                               #textPrepUI("textPrep1"),
                                 bsPopover ("textPrep", "Split the text: Enter the headers from the text separated by a comma to split according to the headers", placement = "bottom", trigger = "hover",
                                          options = NULL),
                                HTML('&nbsp;'),
@@ -185,16 +194,16 @@ dashboardPage(
                                        )
                                ),
                                actionBttn("TermMapping",label = "Map your terms",size="sm"),
-                               bsModal("TermMapping_Modal", "Merge it", "TermMapping", size = "small",
-                                       fluidRow(column(3),uiOutput("Map_HospitalNumber"),
+                               bsModal("TermMapping_Modal", "Merge it", "TermMapping", size = "large",
+                                       fluidRow(column(6,uiOutput("Map_HospitalNumber"),
                                        uiOutput("Map_Endoscopist"),
                                        uiOutput("Map_ProcedurePerformed"),
                                        uiOutput("Map_EndoscopyDate")),
-                                       fluidRow(column(3),uiOutput("Map_Findings"),
+                                       column(6,uiOutput("Map_Findings"),
                                        uiOutput("Map_Findings2"),
                                        uiOutput("Map_Events"),
                                        uiOutput("Map_MacroscopicText"),
-                                       uiOutput("Map_MicroscopicText")),
+                                       uiOutput("Map_MicroscopicText"))),
                                        
                                        footer = tagList(
                                          modalButton("Cancel"),
@@ -285,7 +294,20 @@ dashboardPage(
                                              actionBttn("MergeImages",label = "Merge the images with your dataset",size="sm")),
                                      HTML('&nbsp;'),
                                      actionBttn(inputId = "Del_row_head",label = "Delete selected rows",size="sm"),
-                                     bsPopover ("Del_row_head", "Row deletion: Select individual rows with the checkbox and then press here to delete from the dataset", placement = "bottom", trigger = "hover",options = NULL)
+                                     bsPopover ("Del_row_head", "Row deletion: Select individual rows with the checkbox and then press here to delete from the dataset", placement = "bottom", trigger = "hover",options = NULL),
+                                    
+                                    ############]]]]]  Button- Remove Duplicates############
+                                    actionBttn("RemoveDuplicates",label = "DUP",icon = icon("faa fa-twins"),size="sm"),
+                                    bsPopover ("RemoveDuplicates", "Duplicate report removal: Press to remove rows where one procedure has pathology reported for two procedures (eg merged pathology report when OGD and colonoscopy performed", placement = "bottom", trigger = "hover",
+                                               options = NULL),
+                                     bsModal("Rem_DupModal", "Remove Duplicates", "RemoveDuplicates", size = "small",
+                                             uiOutput("ProcPerf_RemDepsChooser"),
+                                             uiOutput("LexiconChecker_RemDupsChooser"),
+                                             footer = tagList(
+                                               modalButton("Cancel"),
+                                               actionBttn("RemovDupsModal_Okbtn", "OK",size="sm")
+                                             )
+                                     )
                                  ),
                                  
 
@@ -362,19 +384,8 @@ dashboardPage(
                                                actionBttn("regexSearch_ok", "OK",size="sm")
                                              )
                                      ),
-                                     HTML('&nbsp;'),
-                                     ############]]]]]  Button- Remove Duplicates############
-                                     actionBttn("RemoveDuplicates",label = "DUP",icon = icon("faa fa-twins"),size="sm"),
-                                     bsPopover ("RemoveDuplicates", "Duplicate report removal: Press to remove rows where one procedure has pathology reported for two procedures (eg merged pathology report when OGD and colonoscopy performed", placement = "bottom", trigger = "hover",
-                                                options = NULL),
-                                     bsModal("Rem_DupModal", "Remove Duplicates", "RemoveDuplicates", size = "small",
-                                             uiOutput("ProcPerf_RemDepsChooser"),
-                                             uiOutput("LexiconChecker_RemDupsChooser"),
-                                             footer = tagList(
-                                               modalButton("Cancel"),
-                                               actionBttn("RemovDupsModal_Okbtn", "OK",size="sm")
-                                             )
-                                     )
+                                     HTML('&nbsp;')
+                                  
                                  ),
 
 
@@ -391,63 +402,7 @@ bookmarkButton()),
 
 
 
-# Custom ----------------------------------------------------  
 
-
-tabPanel("Custom", tableOutput("table53"),
-         
-         #########]]]]]  Table Create- CustomTable############# 
-         # bsCollapsePanel("Select columns from the Final Dataset and click to display here", "", 
-         #                 fluidRow(
-         #                   DT::dataTableOutput("CustomTable")
-         #                 )
-         # ),
-         mainPanel(width = 100,
-                   navbarPage("",
-                              tabPanel("Data", DT::dataTableOutput("CustomTable")),
-                              ############]]]]]  CustomTable Visualisation Esquiss ############
-                              tabPanel("Visualise",
-                                       tags$div(
-                                         style = "height: 700px;", # needs to be in fixed height container
-                                         esquisserUI(
-                                           id = "esquisseCustom",
-                                           header = FALSE, # dont display gadget title
-                                           choose_data = FALSE # dont display button to change data
-                                         )
-                                       )),
-
-                              ############]]]]]  CustomTable CrossTabulate############
-                              tabPanel("Cross Tabulate", style="overflow: visible",
-                                       fluidRow(rpivotTableOutput("OverallPivot"))),
-                              tabPanel("Endoscopy Utilisation", style="overflow: visible",
-                                       sidebarPanel(
-                                         
-                                         ############]]]]]  CustomTable Chooser - EndoUtilisation Date  ############
-                                       uiOutput("Date_endoscopyutilisationCustom"),
-                                       
-                                       ############]]]]]  CustomTable Chooser - EndoUtilisation Event  ############
-                                       uiOutput("endoscopicEventCustom"),width = 2),
-                                       
-                                       ############]]]]]  CustomTable Plot EndoUtilisation   ############
-                                       mainPanel(verticalLayout(plotlyOutput("endoscopyUse_EndoscopyUseCustom"),
-                                                                
-                                                                ############]]]]]  CustomTable Plot- TimeSeriesAnalysis ############
-                                                                plotlyOutput("plotCustomTSA"))
-                                       )),
-                              tabPanel("Theograph", sidebarPanel(width = 2,
-                                                                 # Select variable for the hospital number
-                                                                 
-                                                                 ############]]]]]  CustomTable Chooser - Theograph HospNum  ############
-                                                                 uiOutput("HospNumCustomTheo"),
-                                                                 
-                                                                 ############]]]]]  CustomTable Chooser - Theograph Date  ############
-                                                                 # Select variable for the dates
-                                                                 uiOutput("DatesCustomTheo")
-                              ),mainPanel(plotlyOutput("plotCustomPT")))
- )
-         )
-         
-),
          
          
          
@@ -456,90 +411,39 @@ tabPanel("Custom", tableOutput("table53"),
 
 
     tabPanel("Barrett's", tableOutput("table5"),
-          #bsCollapsePanel("Data", "", 
-             
-          
-          
           mainPanel(width = 100,
                     navbarPage("",
-                             
-                               
-                               tabPanel("Data",
-                                        # box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "Derive Barrett's data",br(), br()
-                                        #     #actionBttn("BarrettsProcessbtn",label = "PragueScore",size="sm"),
-                                        #     #bsPopover ("BarrettsProcessbtn", "Prague Score: Select two columns with endoscopic findings to generate C and M stage where possible", placement = "bottom", trigger = "hover",options = NULL)
-                                        #     
-                                        #     # bsModal("PragueScoreModal", "Get the Prague score", "PragueScore", size = "small",
-                                        #     #         uiOutput("PragueScoreEndoscopicChooser1"),
-                                        #     #         uiOutput("PragueScoreEndoscopicChooser2"),
-                                        #     #         footer = tagList(
-                                        #     #           modalButton("Cancel"),
-                                        #     #           actionBttn("PragueScoreModalbtn", "OK",size="sm")
-                                        #     #         )),
-                                        #     
-                                        #     
-                                        #     
-                                        #     
-                                        #     # actionBttn("PathStage",label = "PathStage",size="sm"),
-                                        #     # bsPopover ("PathStage", "Worst Pathological Stage: Select the column with pathological findings to generate the worst pathological grade", placement = "bottom", trigger = "hover",options = NULL),
-                                        #     # bsModal("PathStageModal", "Choose column to extract the worst Pathology", "PathStage", size = "small",
-                                        #     #         uiOutput("PathStageChooser"),
-                                        #     #         footer = tagList(
-                                        #     #           modalButton("Cancel"),
-                                        #     #           actionBttn("PathStageModalbtn", "OK",size="sm")
-                                        #     #         )),
-                                        #     
-                                        #     
-                                        #     # actionBttn("FollowUpType",label = "FollowUpType",size="sm"),
-                                        #     # bsPopover ("FollowUpType", "Follow up type: Only press once the Prague score and Path stage buttons have extracted the relevant columns", placement = "bottom", trigger = "hover",options = NULL),
-                                        #     # 
-                                        #     # actionBttn("SurveillanceTime",label="Surveillance Time", icon = icon("far fa-clock"),size="sm"),
-                                        #     # bsPopover ("SurveillanceTime", "Surveillance Time: Select the hospital number and the date of the procedure columns in order to get the time since the last test", placement = "bottom", trigger = "hover",options = NULL),
-                                        #     # bsModal("SurveillanceTimeModal", "Choose columns to get time from last surveillance endoscopy", "SurveillanceTime", size = "small",
-                                        #     #         uiOutput("SurveillanceChooser1"),
-                                        #     #         uiOutput("SurveillanceChooser2"),
-                                        #     #         footer = tagList(
-                                        #     #           modalButton("Cancel"),
-                                        #     #           actionBttn("SurveillanceTimeModalbtn", "OK",size="sm")
-                                        #     #         ))
-                                        #     ),
-                                        
-                                        #########]]]]] Table Create- BarrettsTable#############  
-                                        DT::dataTableOutput("BarrettsTable")
-                               ),
-                        tabPanel("Quality Metrics", sidebarPanel(width = 2,
-                          
-                          # ############]]]]]  BarrettsTable Event- EndoEvent standardiser############
-                          # actionBttn("Barr_DDRbtn",label = "Barr_DDR",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                          # bsPopover ("Barr_DDRbtn", "Barrett's Dysplasia detection: Select in order: Endoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
-                          #            options = NULL),
-                          
-                          
-                          
-                          ############]]]]]  BarrettsTable Event- EndoEvent DDR column select for modal ############
-                          bsModal("Barr_DDRModal", "Get the number of dysplastics", "Barr_DDRbtn", size = "small",
-                                  uiOutput("Barr_DDRColSelect_colEndoscopist"),
-                                  uiOutput("Barr_DDRColSelect_colHistol"),
-                                  uiOutput("Barr_DDRColSelect_colEndoFindings"),
-                                  footer = tagList(
-                                    modalButton("Cancel"),
-                                    #uiOutput("Barr_DDRModalbtn"),
-                                    actionBttn("Barr_DDRModalbtn", "OK",size="sm")
-                                  )
-                          )),
-                          
-                          mainPanel(verticalLayout(
-                            
-                            ############]]]]]  BarrettsTable Plot Quality Endoscopist vs Worst grade Plot  ############
+
+                        tabPanel("Quality Metrics",
+                          box(collapsible = T,collapsed=FALSE, title = "Results", status = "warning", solidHeader = TRUE,
+                                                     ############]]]]]  BarrettsTable Plot Quality Endoscopist vs Worst grade Plot  ############
                             plotlyOutput("plotBarrQM"),
-                            
                             ############]]]]]  BarrettsTable Plot-Quality Documentation quality Plot ############
-                            plotlyOutput("plotBarrEQ"),
-                            
-                            DT::dataTableOutput("BarrDDR_Table"),
+                            plotlyOutput("plotBarrEQ")),
                             #########]]]]]  Drilldown Table- BarrettsTable############# 
-                            
-                            DT::dataTableOutput("drilldownBarr")))),
+                              box(collapsible = T,collapsed=FALSE,
+                              title = "Endoscopy Utilisation", status = "warning", solidHeader = TRUE,
+                              plotlyOutput("endoscopyUse_EndoscopyUseBarr"),
+                              
+                              ############]]]]]  BarrettsTable Plot-Time Series Analysis Plot ############
+                              plotlyOutput("plotBarrTSA")),
+                          
+                          box(collapsible = T,collapsed=FALSE,
+                              title = "Results Table", status = "warning", solidHeader = TRUE,
+                              DT::dataTableOutput("BarrDDR_Table")),
+                          
+                          #########]]]]]  Drilldown Table- polypTable############# 
+                          
+                          box(collapsible = T,collapsed=FALSE,
+                              title = "Results Drill down Table", status = "warning", solidHeader = TRUE,
+                              DT::dataTableOutput("drilldownBarr"))
+                              ),
+                        
+                        
+                        tabPanel("Raw Data",
+                                 #########]]]]] Table Create- BarrettsTable#############  
+                                 DT::dataTableOutput("BarrettsTable")
+                        ),
                         
                         ############]]]]]  BarrTable Vislualisation Esquiss ############
                         tabPanel("Visualise",
@@ -557,22 +461,6 @@ tabPanel("Custom", tableOutput("table53"),
                                  fluidRow(rpivotTableOutput("BarrPivot"))),
                         
 
-                        tabPanel("Endoscopy Utilisation", style="overflow: visible",
-                                 sidebarPanel(
-                                   
-                                   ############]]]]]  BarrettsTable Chooser -Date EndoUtilisation############
-                                   uiOutput("Date_endoscopyutilisationBarr"),
-                                   
-                                   ############]]]]]  BarrettsTable Chooser- TimeSeriesAnalysis Event  ############
-                                   uiOutput("endoscopicEventBarr"),
-                                   actionBttn("EndoBarrUtilisation_btn","Barretts lists"),width=3),
-                                 
-                                 ############]]]]]  BarrettsTable Chooser- TimeSeriesAnalysis Event  ############
-                                 mainPanel(verticalLayout(plotlyOutput("endoscopyUse_EndoscopyUseBarr"),
-                                                          
-                                          ############]]]]]  BarrettsTable Plot-Time Series Analysis Plot ############
-                                          plotlyOutput("plotBarrTSA")))),
-
                         tabPanel("Theograph", sidebarPanel(width = 2,
                           # Select variable for the hospital number
                           
@@ -586,9 +474,7 @@ tabPanel("Custom", tableOutput("table53"),
                           ############]]]]]  BarrettsTable Plot-Theograph Plot ############
                         ),mainPanel(plotlyOutput("plotBarrPT")))
                     )
-                        
             )
-            
           ),
 
 # Polyps  ----------------------------------------------------
@@ -597,33 +483,31 @@ tabPanel("Custom", tableOutput("table53"),
         mainPanel(width = 100,
           
           navbarPage("",
-                     tabPanel("Data",
-                              DT::dataTableOutput("polypTable")),
                       tabPanel("Quality Metrics", 
-                               ############]]]]]  Button - EndoEvent standardiser############
-                               actionBttn("GRS_ADRModalbtn",label = "GRS_ADR",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                               bsPopover ("GRS_ADRModalbtn", "GRS Table: Select in order: Endoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
-                                          options = NULL),
-                               
-                               ############]]]]]  Button - EndoEvent ADR column select for modal ############
-                               # bsModal("GRS_ADRModal", "Get the adenoma detection rate", "GRS_ADRbtn", size = "small",
-                               #         uiOutput("GRS_ADRColSelect_colProcPerf"),
-                               #         uiOutput("GRS_ADRColSelect_colEndoEndoscopist"),
-                               #         uiOutput("GRS_ADRColSelect_colMacroDescript"),
-                               #         uiOutput("GRS_ADRColSelect_colHistol"),
-                               #         footer = tagList(
-                               #           modalButton("Cancel"),
-                               #           uiOutput("ADRModalbtn"),
-                               #           actionBttn("GRS_ADRModalbtn", "OK",size="sm")
-                               #         )
-                               # ),
                                ############]]]]]  GRSTable Create ############
                                
-                               DT::dataTableOutput("GRS_Table"),
+                               box(collapsible = T,collapsed=FALSE,
+                                   title = "Results", status = "warning", solidHeader = TRUE,
+                                   plotlyOutput("plotPolypEQ")),
+                               
+                               box(collapsible = T,collapsed=FALSE,
+                                   title = "Endoscopy Utilisation", status = "warning", solidHeader = TRUE,
+                                   ############]]]]]  PolypTable Plot- EndoUtilisation Plot ############
+                                   plotlyOutput("endoscopyUse_EndoscopyUsePolyp")
+                               ),
+                               
+                               box(collapsible = T,collapsed=FALSE,
+                                   title = "Results Table", status = "warning", solidHeader = TRUE,
+                                   DT::dataTableOutput("GRS_Table")),
                                
                                #########]]]]]  Drilldown Table- polypTable############# 
                                
-                               DT::dataTableOutput("drilldown")),
+                               box(collapsible = T,collapsed=FALSE,
+                                   title = "Results Drill down Table", status = "warning", solidHeader = TRUE,
+                                   DT::dataTableOutput("drilldown"))
+                     ),
+                     tabPanel("Raw Data",
+                              DT::dataTableOutput("polypTable")),
                      tabPanel("Visualise",
                               tags$div(
                                 style = "height: 700px;", # needs to be in fixed height container
@@ -635,23 +519,8 @@ tabPanel("Custom", tableOutput("table53"),
                               )),
 
                      tabPanel("Cross Tabulate", style="overflow: visible",
-                              
                               ############]]]]]  PolypTable CrossTabulate ############
                               fluidRow(rpivotTableOutput("OverallPivotPolyp"))),
-                     tabPanel("Endoscopy Utilisation", style="overflow: visible",
-                              sidebarPanel(
-                                
-                                ############]]]]]  PolypTable Chooser- EndoUtilisation Date Chooser ############
-                                uiOutput("Date_endoscopyutilisationPolyp"),
-                                
-                                ############]]]]]  PolypTable Chooser- TimeSeries Analysis Event  ############
-                                uiOutput("endoscopicEventPolyp"),width = 2),
-                              mainPanel(
-                              fluidRow(
-                                       ############]]]]]  PolypTable Plot- EndoUtilisation Plot ############
-                                       plotlyOutput("endoscopyUse_EndoscopyUsePolyp"),
-                                       ############]]]]]  PolypTable Plot- TimeSeries Analysis Plot ############
-                                       plotlyOutput("plotPolypTSA")))),
                       tabPanel("Theograph", plotOutput("plotPolypPF"))
           )
         )
@@ -662,9 +531,9 @@ tabPanel("Custom", tableOutput("table53"),
              
         mainPanel(width = 100,
           navbarPage("",
-                     tabPanel("Data", 
-                     DT::dataTableOutput("IBD")),
                       tabPanel("Quality Metrics", plotOutput("plotIBDQM")),
+                     tabPanel("Raw Data", 
+                              DT::dataTableOutput("IBD")),
                      tabPanel("Visualise",
                               radioButtons(
                                 inputId = "dataIBD",
@@ -692,21 +561,12 @@ tabPanel("Custom", tableOutput("table53"),
  
         )
     ),
+
+# Per endoscopist ----------------------------------------------------  
+
 tabPanel("Per Endoscopist Report",
          mainPanel(width = 100,
-                   
-                   navbarPage("Endoscopist Dashboard",
-                              tabPanel(actionBttn("RunReport",label = "GetReport",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                                       # bsModal("PerformanceTable", "Merge it", "Btn_GetReport", size = "small",
-                                       #         uiOutput("Report_Endoscopist"),
-                                       #         uiOutput("Report_Findings"),
-                                       #         uiOutput("Report_Histopath"),
-                                       #         uiOutput("Report_URL"),
-                                       #         footer = tagList(
-                                       #           modalButton("Cancel"),
-                                       #           actionBttn("RunReport", "OK",size="sm")
-                                       #         )
-                                       # ),
+                   navbarPage("",
                               box(collapsible = T,collapsed=FALSE,
                                 title = "Results", status = "warning", solidHeader = TRUE, DT::dataTableOutput("performanceTable"),
                                 "Box content here", br(), "More box content"),
@@ -727,9 +587,62 @@ tabPanel("Per Endoscopist Report",
                                 ############]]]]]  BarrettsTable Plot-Quality Documentation quality Plot ############
                                 plotlyOutput("plotBarrEQ_Perform"),
                                 "Box content here", br(), "More box content")
-                              )
+                              
                 ))
+         ),
+# Custom ----------------------------------------------------  
+
+
+tabPanel("Custom", tableOutput("table53"),
+         
+         #########]]]]]  Table Create- CustomTable############# 
+
+         mainPanel(width = 100,
+                   navbarPage("",
+                              tabPanel("Data", DT::dataTableOutput("CustomTable")),
+                              ############]]]]]  CustomTable Visualisation Esquiss ############
+                              tabPanel("Visualise",
+                                       tags$div(
+                                         style = "height: 700px;", # needs to be in fixed height container
+                                         esquisserUI(
+                                           id = "esquisseCustom",
+                                           header = FALSE, # dont display gadget title
+                                           choose_data = FALSE # dont display button to change data
+                                         )
+                                       )),
+                              
+                              ############]]]]]  CustomTable CrossTabulate############
+                              tabPanel("Cross Tabulate", style="overflow: visible",
+                                       fluidRow(rpivotTableOutput("OverallPivot"))),
+                              tabPanel("Endoscopy Utilisation", style="overflow: visible",
+                                       sidebarPanel(
+                                         
+                                         ############]]]]]  CustomTable Chooser - EndoUtilisation Date  ############
+                                         uiOutput("Date_endoscopyutilisationCustom"),
+                                         
+                                         ############]]]]]  CustomTable Chooser - EndoUtilisation Event  ############
+                                         uiOutput("endoscopicEventCustom"),width = 2),
+                                       
+                                       ############]]]]]  CustomTable Plot EndoUtilisation   ############
+                                       mainPanel(verticalLayout(plotlyOutput("endoscopyUse_EndoscopyUseCustom"),
+                                                                
+                                                                ############]]]]]  CustomTable Plot- TimeSeriesAnalysis ############
+                                                                plotlyOutput("plotCustomTSA"))
+                                       )),
+                              tabPanel("Theograph", sidebarPanel(width = 2,
+                                                                 # Select variable for the hospital number
+                                                                 
+                                                                 ############]]]]]  CustomTable Chooser - Theograph HospNum  ############
+                                                                 uiOutput("HospNumCustomTheo"),
+                                                                 
+                                                                 ############]]]]]  CustomTable Chooser - Theograph Date  ############
+                                                                 # Select variable for the dates
+                                                                 uiOutput("DatesCustomTheo")
+                              ),mainPanel(plotlyOutput("plotCustomPT")))
+                   )
          )
+         
+)
     )
   )
 )
