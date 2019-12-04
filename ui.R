@@ -13,6 +13,8 @@ library(plotly)
 library(shinyjs)
 library(shinyWidgets)
 library(shinyalert)
+library(shinyjqui)
+library(shinydashboardPlus)
 
 
 # Module UI function
@@ -38,7 +40,7 @@ textPrepUI <- function(id) {
 
 ui <-function(request) {fluidPage(theme=shinytheme("simplex"),
                                   useShinyjs(),
-                                  themeSelector(),  
+                                  #themeSelector(),  
                                   useShinyalert(), 
 
             tags$script(HTML('$(document).on("click", "input", function () {
@@ -68,9 +70,9 @@ ui <-function(request) {fluidPage(theme=shinytheme("simplex"),
       }"),
       
 
-dashboardPage(
+        dashboardPagePlus(
   
-  dashboardHeader(title = 'EndoMineR',
+  dashboardHeaderPlus(title = 'EndoMineR',
                   tags$li( class="dropdown",a(href = 'https://ropensci.github.io/EndoMineR/articles/EndoMineRPrinciples.html',
                             icon("fa-li fa-bullseye"))),
                   tags$li(class="dropdown",a(href = 'https://twitter.com/GastroDS',
@@ -113,7 +115,7 @@ dashboardPage(
                                
                                ###########]]]]] Endotable events-textPrep ############                               
                                box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "B. Split the data",
-                               textInput("caption", "", "Enter the comma separated headers here"),
+                               uiOutput("captionEndo"),
                                actionBttn("textPrep",label = "Split",size="sm"),
                                
                                #textPrepUI("textPrep1"),
@@ -150,7 +152,9 @@ dashboardPage(
 
                                ###########]]]]] pathTable events- textPrep ############  
                                box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "B. Split data",
-                               textInput("captionPath", "", "Enter the comma separated headers here"),
+                               
+                                   
+                                   uiOutput("captionPathol"),
                                actionBttn("textPrepPath",label = "Split",size="sm"),
                                 bsPopover ("textPrepPath", "Split the data: Enter the headers from the text separated by a comma to split according to the headers", placement = "bottom", trigger = "hover",
                                          options = NULL),
@@ -179,9 +183,12 @@ dashboardPage(
                                  inputId = "Endomerge2Me",
                                  label = "Text Dataset Merge",
                                  size="lg",
-                                 style = "simple",
+                                 style = "material-flat",
                                  block = TRUE
                                )),
+                               
+                               ############]]]]]  Button - EndoMerge############
+                               
                                bsModal("Endomerge2_modal", "Merge it", "Endomerge2Me", size = "small",
                                       
                                       uiOutput("DS1_DateChooser"),
@@ -192,37 +199,19 @@ dashboardPage(
                                          modalButton("Cancel"),
                                          actionBttn("Endomerge2", "OK",size="sm")
                                        )
-                               ),
-                               actionBttn("TermMapping",label = "Map your terms",size="sm"),
-                               bsModal("TermMapping_Modal", "Merge it", "TermMapping", size = "large",
-                                       fluidRow(column(6,uiOutput("Map_HospitalNumber"),
-                                       uiOutput("Map_Endoscopist"),
-                                       uiOutput("Map_ProcedurePerformed"),
-                                       uiOutput("Map_EndoscopyDate")),
-                                       column(6,uiOutput("Map_Findings"),
-                                       uiOutput("Map_Findings2"),
-                                       uiOutput("Map_Events"),
-                                       uiOutput("Map_MacroscopicText"),
-                                       uiOutput("Map_MicroscopicText"))),
-                                       
-                                       footer = tagList(
-                                         modalButton("Cancel"),
-                                       actionBttn("MapMe", "OK",size="sm")
-                                       )
                                )
-                               
                                ),
                                br(),
                                
-                               fluidRow(column(5),column(4,
+                               fluidRow(column(4,
                                  ############]]]]]  BOX ############
                                  #########]]]]] File upload- mergedtable#############
-                            box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=TRUE,title = "Optional",
+                                 box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=TRUE,title = "Optional",
 
                                      fileInput("inFile_merged",label="",multiple = FALSE),
                                 
-                                
-                                
+                                     
+                                     
                                  ############]]]]]  BOX ############
                                  ###########]]]]]  Button -textPrep ###########
                                  
@@ -246,15 +235,12 @@ dashboardPage(
                             bsPopover ("Endomerge2", "Text Merge: Make sure you have standarised both the date and hospital column in both the endoscopy and the pathology datasets, then press this button to get the datasets merged.", placement = "bottom", trigger = "hover",options = NULL),
 
                                  ############]]]]]  BOX ############
-                                 
-                                 ############]]]]]  Button - EndoMerge############
-                                 box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = " Clean columns and rows",width = 6,br(), br(),
+                                 box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=TRUE,title = " Clean columns and rows",width = 4,br(), br(),
                                      ############]]]]]  Button - Categorical standardiser############
                                      actionBttn("CategoricalDataMerge",label = "", icon = icon("far fa-flushed"),size="sm"),
                                      bsPopover ("CategoricalDataMerge", "Categorical standardiser: Select only one categorical column then press the button to standardise", placement = "bottom", trigger = "hover",
                                                 options = NULL),
-                                    #textOutput('CategoricalDataMerge_Validation'),
-                                     
+
                                      
                                      
                                      ############]]]]]  Button - Numeric standardiser############
@@ -269,128 +255,51 @@ dashboardPage(
                                      actionBttn("NegExMerge",label = "Negex",size="sm"),
                                      bsPopover ("NegExMerge", "Negative phrase deletion: Select only one text column to exclude all sentences with negative expressions", placement = "bottom", trigger = "hover",
                                                 options = NULL),
+
                                      HTML('&nbsp;'),
-                                    
-                                    ############]]]]]  Button - Image Merge############
-                                     actionBttn("MergeWithImages",label = "Image Merge",size="sm"),
-                                     bsPopover ("MergeWithImages", "Image Merge: Press here to merge with images. The images must be from a html export with hospital numbers and dates so they can be merged.", placement = "bottom", trigger = "hover",options = NULL),
-                                     
-                                     bsModal("modalExampleImages", "Image Merge menu", "MergeWithImages", size = "size",
-                                             shinyFilesButton("Btn_GetFileImage", "Choose the html file with the endoscopy details and pictures" ,
-                                                              title = "Please select a file:", multiple = FALSE, buttonType = "default", class = NULL),
-                                             br(),br(), br(),
-                                             textOutput("txt_file"),
-                                             br(), br(),br(), br(),
-                                             
-                                             textInput("captionDelim", "Which words or phrases in the html separates the procedures (eg 'Procedure Number:)", "delimiting word or phrase",width="45%"),
-                                             uiOutput("ImageMerge_DelimTextPickers"),
-                                             uiOutput("ImageMerge_DateChooser"),
-                                             uiOutput("ImageMerge_HospNumChooser"),
-                                             br(), br(), br(),
-                                             shinyDirButton('folder', 'Choose folder containing all the image', 'Please select a folder containing all the images (usually in the same parent folder as the html report)', FALSE),
-                                             br(),br(), br(),
-                                             textOutput("folder_file"),
-                                             br(), br(),br(), br(),
-                                             actionBttn("MergeImages",label = "Merge the images with your dataset",size="sm")),
-                                     HTML('&nbsp;'),
-                                     actionBttn(inputId = "Del_row_head",label = "Delete selected rows",size="sm"),
+                                     actionBttn(inputId = "Del_row_head",label = "Delete rows",size="sm"),
                                      bsPopover ("Del_row_head", "Row deletion: Select individual rows with the checkbox and then press here to delete from the dataset", placement = "bottom", trigger = "hover",options = NULL),
                                     
-                                    ############]]]]]  Button- Remove Duplicates############
-                                    actionBttn("RemoveDuplicates",label = "DUP",icon = icon("faa fa-twins"),size="sm"),
-                                    bsPopover ("RemoveDuplicates", "Duplicate report removal: Press to remove rows where one procedure has pathology reported for two procedures (eg merged pathology report when OGD and colonoscopy performed", placement = "bottom", trigger = "hover",
+
+                                     
+                                     
+                                    ############]]]]]  Button - Regex############
+                                    actionBttn("Regex",label = "Regex",size="sm"),
+                                    bsPopover ("Regex", "Custom regular expression: Put in a regular expression or a keyowrd to derive a new column with those elements extracted so you can filter on them", placement = "bottom", trigger = "hover",
                                                options = NULL),
-                                     bsModal("Rem_DupModal", "Remove Duplicates", "RemoveDuplicates", size = "small",
-                                             uiOutput("ProcPerf_RemDepsChooser"),
-                                             uiOutput("LexiconChecker_RemDupsChooser"),
-                                             footer = tagList(
-                                               modalButton("Cancel"),
-                                               actionBttn("RemovDupsModal_Okbtn", "OK",size="sm")
-                                             )
-                                     )
+                                    bsModal("RegexColAdder", "Add a column defined by a regular expression", "Regex", size = "small",
+                                            textInput("regexSearch", "Enter the search term here", "") ,
+                                            footer = tagList(
+                                              modalButton("Cancel"),
+                                              actionBttn("regexSearch_ok", "OK",size="sm")
+                                            )
+                                    )
                                  ),
+                            column(1),
+                            actionBttn("TermMapping",label = "Map your terms",size="md",style="material-flat"),
+                            bsModal("TermMapping_Modal", "Merge it", "TermMapping", size = "large",
+                                    fluidRow(column(6,uiOutput("Map_HospitalNumber"),
+                                                    uiOutput("Map_Endoscopist"),
+                                                    uiOutput("Map_Medications"),
+                                                    uiOutput("Map_Indications"),
+                                                    uiOutput("Map_ProcedurePerformed"),
+                                                    uiOutput("Map_EndoscopyDate"),
+                                                    uiOutput("Map_Instrument")),
+                                             column(6,uiOutput("Map_Findings"),
+                                                    uiOutput("Map_Findings2"),
+                                                    uiOutput("Map_Events"),
+                                                    uiOutput("Map_MacroscopicText"),
+                                                    uiOutput("Map_MacroscopicTextDelim"),
+                                                    uiOutput("Map_MicroscopicText"),
+                                                    uiOutput("ImageMerge_DelimTextPickers"))),
+                                    
+                                    footer = tagList(
+                                      modalButton("Cancel"),
+                                      actionBttn("MapMe", "OK",size="sm")
+                                    )
+                            ),
                                  
 
-
-                                 ############]]]]]  BOX ############
-                                 ############]]]]]  Button - Biopsy Number standardiser############
-                                 box(status = "primary", solidHeader = TRUE,collapsible = T,collapsed=FALSE,title = "Derive new columns",br(), br(),
-                                     actionBttn("NumBxMerge",label = "",icon = icon("fas fa-microscope"),size="sm"),
-                                      bsPopover ("NumBxMerge", "Number of biopsies: Select column (usually a macroscopic description column from pathology) to extract the total number of biopsies", placement = "bottom", trigger = "hover",
-                                               options = NULL),
-
-                                     bsModal("NumBxModal", "Get the number of biopsies taken", "NumBxMerge", size = "small",
-                                             textInput("new_name", "Enter the delimiter here:", "") ,
-
-                                             footer = tagList(
-                                               modalButton("Cancel"),
-                                               actionBttn("NumBxModal_ok", "OK",size="sm")
-                                             )
-                                     ),
-                                  
-                                     ############]]]]]  Button - Biopsy size standardiser############
-                                     HTML('&nbsp;'),
-                                     actionBttn("BxSizeMerge",label = "",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                                      bsPopover ("BxSizeMerge", "Size of biopsies: Select column (usually a macroscopic description column from pathology) to extract the average biopsy size ", placement = "bottom", trigger = "hover",
-                                               options = NULL),
-                                     HTML('&nbsp;'),
-
-                                     ############]]]]]  Button - Endoscopist standardiser############
-                                     actionBttn("EndoscEndoscopistMerge",label = "", icon = icon("user-md custom"),size="sm"),
-                                      bsPopover ("EndoscEndoscopistMerge", "Endoscopist name standardiser: Standardise the endoscopist column", placement = "bottom", trigger = "hover",
-                                                   options = NULL),
-                                     HTML('&nbsp;'),
-                                     
-                                     ############]]]]]  Button - Medication standardiser############
-                                     actionBttn("EndoscMedsMerge",label = "",icon = icon("fas fa-pills"),size="sm"),
-                                      bsPopover ("EndoscMedsMerge", "Medication extraction: Select the medication column to extract medications", placement = "bottom", trigger = "hover",
-                                                   options = NULL),
-                                     HTML('&nbsp;'),
-                                     
-                                     ############]]]]]  Button - Instrument standardiser############
-                                     actionBttn("EndoscInstrumentMerge",label = "q",icon = icon("stethoscope custom"),size="sm"),
-                                      bsPopover ("EndoscInstrumentMerge", "Instrument extraction: Select the Instrument column to clean instrument names", placement = "bottom", trigger = "hover",
-                                                   options = NULL),
-                                     HTML('&nbsp;'),
-                                     
-                                     ############]]]]]  Button - EndoEvent standardiser############
-                                     actionBttn("EndoEvent",label = "Events",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                                     bsPopover ("EndoEvent", "Endoscopic Event extraction: Select in order: \nEndoscopic Findings, ProcedurePerformed, Macroscopicdescription and Histology text", placement = "bottom", trigger = "hover",
-                                                options = NULL),
-                                     HTML('&nbsp;'),
-                                     
-                                     
-                                     ############]]]]]  Button - EndoEvent column select for modal ############
-                                     bsModal("EndoEventModal", "Get the events that happened at endoscopy", "EndoEvent", size = "small",
-                                             uiOutput("EndoEventColSelect_colEndoFindings"),
-                                             uiOutput("EndoEventColSelect_colProcPerf"),
-                                             uiOutput("EndoEventColSelect_colMacroDescript"),
-                                             uiOutput("EndoEventColSelect_colHistol"),
-                                             footer = tagList(
-                                               modalButton("Cancel"),
-                                               uiOutput("EndoEventcol_sel"),
-                                               actionBttn("EndoEventModalbtn", "OK")
-                                             )
-                                     ),
-                                     
-                                     ############]]]]]  Button - Regex############
-                                     actionBttn("Regex",label = "",icon = icon("fas fa-sort-numeric-up"),size="sm"),
-                                     bsPopover ("Regex", "Custom regular expression: Put in a regular expression or a keyowrd to derive a new column with those elements extracted so you can filter on them", placement = "bottom", trigger = "hover",
-                                                options = NULL),
-                                     bsModal("RegexColAdder", "Add a column defined by a regular expression", "Regex", size = "small",
-                                             textInput("regexSearch", "Enter the search term here", "") ,
-                                             footer = tagList(
-                                               modalButton("Cancel"),
-                                               actionBttn("regexSearch_ok", "OK",size="sm")
-                                             )
-                                     ),
-                                     HTML('&nbsp;')
-                                  
-                                 ),
-
-
-
-                               
                                #########]]]]] Table Create- mergedtable#############
                                DT::dataTableOutput("mergedTable"))
                )
@@ -567,14 +476,28 @@ bookmarkButton()),
 tabPanel("Per Endoscopist Report",
          mainPanel(width = 100,
                    navbarPage("",
+                              
                               box(collapsible = T,collapsed=FALSE,
-                                title = "Results", status = "warning", solidHeader = TRUE, DT::dataTableOutput("performanceTable"),
+                                  title = "Procedure Summary", status = "warning", solidHeader = TRUE, 
+                              uiOutput("ibox")),
+                              
+                              box(collapsible = T,collapsed=FALSE,
+                                title = "Results", status = "warning", solidHeader = TRUE, 
+                               
+                                uiOutput("EndoscopistChooser"),
+                                downloadButton("report", "Generate report"),
+                                DT::dataTableOutput("performanceTable"),
                                 "Box content here", br(), "More box content"),
+                              
+                              
                               
                               box(collapsible = T,collapsed=FALSE,
                                 title = "Biopsies By Indication", status = "warning", solidHeader = TRUE,
+                                
                                 plotlyOutput("IndicsVsBiopsies"),                        
                                 "Box content here", br(), "More box content"),
+                              
+                              ############]]]]]  GRS Table per endoscopist  ############
                               
                               box(collapsible = T,collapsed=FALSE,
                                 title = "GRS", status = "warning", solidHeader = TRUE,DT::dataTableOutput("GRS_perEndoscopist_Table"),

@@ -1,0 +1,107 @@
+---
+title: "Dynamic report"
+always_allow_html: yes
+output:
+  word_document:
+    fig_caption: true
+params:
+  EndoscopistChooserIn: NA
+  Map_EndoscopistIn: NA
+  BarrEQPerformFinalTable: NA
+  EndoscopyTypesDonePre: NA
+  performanceTable: NA
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir=here::here())
+
+library(ggplot2)
+
+```
+
+```{r,warning=FALSE,echo=FALSE}
+
+getwd()
+df<-params$performanceTable
+
+#Need to remove the <img src=
+#and the >
+df$Image<-gsub("<img src=\'","",df$Image)
+df$Image<-gsub("'>","",df$Image)
+df$Image<-gsub("%20"," ",df$Image)
+df$Image<-gsub("!\\[\\]\\(",paste0("!\\[\\]\\(",here::here(),"/www/"),df$Image)
+df[,params$EndoscopistChooserIn]<-NULL
+#df$Image<-paste0(here::here(),"jiji",df$Image)
+
+sprintf(df$Image)
+
+#knitr::kable(df)
+
+pander(df, justify='left',split.table=Inf,caption="Table 1: Cancer diagnoses")
+
+
+```
+
+
+```{r,warning=FALSE,echo=FALSE}
+der <- data.frame(image = c('<img src="http://www.ufotm.com/data/attachment/forum/201203/11/110705gf50r55yqcka5ffz.jpg" height="52"></img>' ), title = "here is a title")
+DT::renderDataTable(der, escape = FALSE)
+```
+
+A plot of = random points.
+
+```{r,echo=FALSE,warning=FALSE}
+#browser()
+    if(!is.null(params$EndoscopistChooserIn)){
+        if(length(params$EndoscopyTypesDonePre)>0){
+    
+       ggplot(params$EndoscopyTypesDonePre,aes_string(x = "IMorNoIM", fill = "endoscopist")) + geom_histogram(stat = "count")
+        }
+    }
+```
+
+
+
+
+
+```{r,echo=FALSE,warning=FALSE}
+
+
+
+          key <- params$Map_EndoscopistIn
+          
+          
+          if(!is.null(params$EndoscopistChooserIn)){
+           params$BarrEQPerformFinalTable %>% filter(get(params$Map_EndoscopistIn) == params$EndoscopistChooserIn) %>% ggplot+ aes_string(x = key, y = "PercentDocs", fill = "DocumentedElement") + geom_bar(stat = "identity",position="dodge") + theme(axis.text.x = element_text(angle = -90))
+                    }
+
+
+```
+
+
+
+
+```{r,echo=FALSE,warning=FALSE}
+    #browser()
+    # params$RV3Report$indicationsforexamination<-EndoMineR::ColumnCleanUp(params$RV3Report[,params$Map_ProcedurePerformedIn])
+    # myBx_df<-separate_rows(params$RV3Report, indicationsforexamination, sep = ",", convert = FALSE)
+    # myBx_df$indicationsforexamination<-gsub("^\\.","", myBx_df$indicationsforexamination)
+    # 
+    # #Then get average per indication
+    # myBx_df$NumBx<-HistolNumbOfBx(myBx_df$macroscopicdescription, "pieces")
+    #   cc<-myBx_df %>% filter(get(params$Map_EndoscopistIn)==params$EndoscopistChooserIn) %>%
+    #   group_by(indicationsforexamination) %>%
+    #   dplyr::summarise(mean=mean(NumBx,na.rm=T),count=n(),ToTalNumBx=sum(NumBx,na.rm=T))%>%
+    #   filter(count>1,mean>0,!is.na(indicationsforexamination))
+    # 
+    # IndicBiopsy<-ggplot(cc,aes(x=indicationsforexamination,y=mean))+
+    #   geom_bar(stat="identity")+
+    #   coord_flip()
+    # 
+    # ggplotly(IndicBiopsy,source = "subset",key=key,width=) %>% layout(dragmode = "select")
+    
+```
