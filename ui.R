@@ -500,7 +500,9 @@ tabPanel("Per Endoscopist Report",
                               ############]]]]]  GRS Table per endoscopist  ############
                               
                               box(collapsible = T,collapsed=FALSE,
-                                title = "GRS", status = "warning", solidHeader = TRUE,DT::dataTableOutput("GRS_perEndoscopist_Table"),
+                                title = "GRS", status = "warning", solidHeader = TRUE,
+                                #DT::dataTableOutput("GRS_perEndoscopist_Table"),
+                                plotlyOutput("GRS_perEndoscopistPlot"),   
                                 "Box content here", br(), "More box content"),
                               
                               box(collapsible = T,collapsed=FALSE,
