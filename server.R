@@ -451,7 +451,6 @@ server <- function(input, output,session) {
   
   #Standardise the date Dataset 1
   observeEvent(input$DateStandardiserEndo,{
-    #browser()
     RV$data[,as.numeric(input$endotable_columns_selected)]<-parse_date_time(str_extract(RV$data[,as.numeric(input$endotable_columns_selected)],
                                                                                         "(\\d{4}[[:punct:]]\\d{2}[^:alnum:]\\d{2})|(\\d{2}[^:alnum:]\\d{2}[^:alnum:]\\d{4})"),
                                                                             orders = c("dmy", "ymd"))
@@ -490,32 +489,6 @@ server <- function(input, output,session) {
     
     
   },ignoreInit = TRUE)
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   
@@ -595,7 +568,6 @@ server <- function(input, output,session) {
   
   
   ########### pathTable events ############  
-  
   
   
   ###########::::: Button-Date standardiser ###########
@@ -985,8 +957,6 @@ server <- function(input, output,session) {
     
     
     #Merge the Images if possible:
-    
-    
    
     #input$Btn_GetFileImage
     file_selected<-list.files(path = here::here("www","Images"), full.names = TRUE)[2]
@@ -1020,9 +990,7 @@ server <- function(input, output,session) {
     mypolypdata1<- RV3$data[Reduce(`|`, lapply(RV3$data, grepl, pattern = "polyp")),]
     polypData$data <- mypolypdata1[Reduce(`|`, lapply(mypolypdata1, grepl, pattern = "colonoscopy")),]
     
-    
-    
-    
+
     #Barretts Processing
     RV4$data<-Barretts_PragueScore(RV4$data, input$Map_FindingsIn, input$Map_Findings2In)
     RV4$data$mytext<-NULL
@@ -1041,6 +1009,9 @@ server <- function(input, output,session) {
     
     #No need for fuzzy join here as images are from the endoscopy- may need to change this with other images though
     RV3$data<-left_join(RV3$data,Imgdf,by = c("Date","HospitalNum"), copy = FALSE)
+    
+    # Need to merge all the images together in to one row if the date and hospital number are the same 
+    #(forget about trying to decide what procedure an image belongs too- too difficult at the moment).
     
     CustomData$data<-RV3$data
     
@@ -1481,8 +1452,9 @@ server <- function(input, output,session) {
             need(length(input$Map_EndoscopistIn) > 0, "Press Barr_DDR to get the plots")
           ) 
           key <- input$Map_EndoscopistIn
-          p<-ggplot(RV4$data,  aes_string(x = "IMorNoIM",fill="endoscopist")) + 
-            geom_histogram(stat = "count")
+          p<-ggplot(RV4$data,  aes_string(x = "endoscopist",fill="IMorNoIM")) + 
+            geom_histogram(stat = "count")+
+            theme(axis.text.x=element_text(angle=-90))
           ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
         }
       }
@@ -1928,8 +1900,7 @@ server <- function(input, output,session) {
                        RV3$data[,input$Map_FindingsIn],
                        RV3$data[,input$Map_MicroscopicTextIn],
                        RV3$data$url)
-    
-#browser()
+
     names(data)<-c(input$Map_HospitalNumberIn,input$Map_EndoscopistIn,input$Map_FindingsIn,input$Map_MicroscopicTextIn,"Image")
     if(!is.null(input$EndoscopistChooserIn)){
       data<-data%>%filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn)%>%select(input$Map_HospitalNumberIn,input$Map_FindingsIn,input$Map_MicroscopicTextIn,Image)
@@ -2000,8 +1971,6 @@ server <- function(input, output,session) {
   
   
   sumdiplay = reactive({
-    
-    #browser()
     
     infoData<-RV3$data%>% filter(get(input$Map_EndoscopistIn) == input$EndoscopistChooserIn)
     plouf <- t(as.list(table(EndoMineR::ColumnCleanUp(infoData[,input$Map_ProcedurePerformedIn]))))
@@ -2178,8 +2147,6 @@ server <- function(input, output,session) {
   
   output$IndicsVsBiopsies <- renderPlotly({
     
-   
-    
     IndicBiopsy<-ggplot( IndicsVsBiopsiesPre(),aes(x=indicationsforexamination,y=mean))+
       geom_bar(stat="identity")+
       coord_flip()
@@ -2192,10 +2159,11 @@ server <- function(input, output,session) {
     sumdiplay()
   })
   
+  
+  
+  
+  
   ############:::::  Plot Quality Endoscopist vs Worst grade Plot  ############
-  
-  
-  
   
   EndoscopyTypesDonePre <- reactive({
     
