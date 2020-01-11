@@ -931,7 +931,7 @@ server <- function(input, output,session) {
   )
   
   
-  observeEvent(input$MapMe,{
+ observeEvent(input$MapMe,{
     
     RV3$data[,input$Map_EndoscopistIn]<-EndoscEndoscopist(RV3$data[,input$Map_EndoscopistIn])
     
@@ -952,17 +952,20 @@ server <- function(input, output,session) {
     RV3$data<-cbind(EndoscMeds(RV3$data[,input$Map_MedicationsIn]),RV3$data)
     RV3$data$BxSize<-HistolBxSize(RV3$data[,input$Map_MacroscopicTextIn])
     
-    #browser()
+    browser()
     RV3$data$NumBx<-HistolNumbOfBx(RV3$data[,input$Map_MacroscopicTextIn],input$Map_MacroscopicTextDelimIn)
     RV3$data$Instrument<-EndoscInstrument(RV3$data[,input$Map_InstrumentIn])
     
     
     #Merge the Images if possible:
-   
+    browser()
     #input$Btn_GetFileImage
     file_selected<-list.files(path = here::here("www","Images"), full.names = TRUE)[2]
     folder_selected<-list.dirs(path = here::here("www","Images"), full.names = TRUE)[2]
-    
+    if (length(file_selected) > 0 ) {
+      if (!is.na(file_selected) ) {
+        if (length(folder_selected) > 0 ) {
+          if (!is.na(folder_selected) ) {
     Imgdf<-MyImgLibrary(file_selected,
                         input$ImageMerge_DelimTextPickersIn,folder_selected)
     
@@ -975,6 +978,10 @@ server <- function(input, output,session) {
     Imgdf$Date <- as.Date(Imgdf$Date)
     
     Imgdf$base64<-NULL
+          }
+        }
+      }
+      }
     
     if(!"Date" %in% colnames(RV3$data)){
       colnames(RV3$data)[colnames(RV3$data)==input$Map_EndoscopyDateIn] <- "Date"
@@ -1007,17 +1014,26 @@ server <- function(input, output,session) {
     DDRTable<-RV4$data%>%group_by(!!rlang::sym(input$Map_EndoscopistIn),RV4$data$IMorNoIM)%>%dplyr::summarise(n=n())    
     BarrDDR_TableData$data<-DDRTable%>%spread(2, n)
     
-    
+    if (length(file_selected) > 0 ) {
+      if (!is.na(file_selected) ) {
+        if (length(folder_selected) > 0 ) {
+          if (!is.na(folder_selected) ) {
     #No need for fuzzy join here as images are from the endoscopy- may need to change this with other images though
     RV3$data<-left_join(RV3$data,Imgdf,by = c("Date","HospitalNum"), copy = FALSE)
+    RV4$data<-left_join(RV4$data,Imgdf,by = c("Date","HospitalNum"), copy = FALSE)
+    polypData$data<-left_join(polypData$data,Imgdf,by = c("Date","HospitalNum"), copy = FALSE)
+          }
+        }
+      }
+    }
     
     # Need to merge all the images together in to one row if the date and hospital number are the same 
     #(forget about trying to decide what procedure an image belongs too- too difficult at the moment).
     
     CustomData$data<-RV3$data
     
-    RV4$data<-left_join(RV4$data,Imgdf,by = c("Date","HospitalNum"), copy = FALSE)
-    polypData$data<-left_join(polypData$data,Imgdf,by = c("Date","HospitalNum"), copy = FALSE)
+    
+    
     
     saveDataMapping(formDataMapping())
     
