@@ -523,6 +523,7 @@ server <- function(input, output,session) {
     sel_path <- list.files(path = here::here("www","Images"), full.names = TRUE)[2]
 
     if (length(sel_path) > 0 ) {
+      if (!is.na(sel_path) ) {
       
       file_selected<-list.files(path = here::here("www","Images"), full.names = TRUE)[2]
       htmlCode = readLines(file_selected)
@@ -542,7 +543,7 @@ server <- function(input, output,session) {
       freqsWords<-data.frame(freqs[freqs$frequency > 1, ])
       Me<-freqsWords$feature[1:15]
       myhtml$myhtml<-as.character(gsub("_"," ",Me))
-      
+     } 
     }
   })
   
