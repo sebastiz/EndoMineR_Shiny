@@ -952,7 +952,6 @@ server <- function(input, output,session) {
     RV3$data<-cbind(EndoscMeds(RV3$data[,input$Map_MedicationsIn]),RV3$data)
     RV3$data$BxSize<-HistolBxSize(RV3$data[,input$Map_MacroscopicTextIn])
     
-    browser()
     RV3$data$NumBx<-HistolNumbOfBx(RV3$data[,input$Map_MacroscopicTextIn],input$Map_MacroscopicTextDelimIn)
     RV3$data$Instrument<-EndoscInstrument(RV3$data[,input$Map_InstrumentIn])
     
