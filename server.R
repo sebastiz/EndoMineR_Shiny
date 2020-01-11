@@ -958,7 +958,6 @@ server <- function(input, output,session) {
     
     
     #Merge the Images if possible:
-    browser()
     #input$Btn_GetFileImage
     file_selected<-list.files(path = here::here("www","Images"), full.names = TRUE)[2]
     folder_selected<-list.dirs(path = here::here("www","Images"), full.names = TRUE)[2]
