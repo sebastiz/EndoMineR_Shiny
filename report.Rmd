@@ -1,10 +1,11 @@
 ---
-title: "Dynamic report"
+title: "Personalised Endoscopy Report for Evaluation and Continuous Training (PERFECT)"
 always_allow_html: yes
 output:
   word_document:
     fig_caption: true
     reference_docx: !expr here::here("word-styles-reference-01.docx")
+date: '`r format(Sys.time(), "%d %B, %Y")`'
     
 params:
   EndoscopistChooserIn: NA
@@ -15,7 +16,6 @@ params:
   IndicsVsBiopsiesPre: NA
   GRS_perEndoscopist_TablePrep: NA
 ---
-
 
 
 
@@ -32,33 +32,40 @@ library(kableExtra)
 
 ```{r,warning=FALSE,echo=FALSE,warning=FALSE}
 
-
 df<-params$performanceTable
+if(!is.null(df$Image)){
 df$Image<-gsub("<img src=\'","",df$Image)
 df$Image<-gsub("'>","",df$Image)
 df$Image<-gsub("%20"," ",df$Image)
 df$Image<-gsub("!\\[\\]\\(",paste0("!\\[\\]\\(",here::here(),"/www/"),df$Image)
 df[,params$EndoscopistChooserIn]<-NULL
-
 names(df)<-c("Endoscopist","Findings","Histology","Images")
-
 pander(df[,1:4],justify = c('left'),split.table = Inf)
+} else {
+  df[,params$EndoscopistChooserIn]<-NULL
+  names(df)<-c("Endoscopist","Findings","Histology")
+pander(df[,1:3],justify = c('left'),split.table = Inf)
+  
+}
+
+
 
 ```
 
+```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=6,fig.cap="Barrett's Histopathological Grade"}
 
-
-
-```{r,echo=FALSE,warning=FALSE}
-
-
+key <- params$Map_EndoscopistIn
     if(!is.null(params$EndoscopistChooserIn)){
         if(length(params$EndoscopyTypesDonePre)>0){
           p1<-gghistogram(params$EndoscopyTypesDonePre, x = "IMorNoIM",fill = "endoscopist", stat="count",
                           font.xtickslab = c(8, "bold", "#2E9FDF"),font.font.ytickslab = c(8, "bold", "#E7B800"))
         }
-      
     }
+
+p1
+```
+
+```{r figs_BarrettsDocumentation, echo=FALSE, warning=FALSE,fig.width=7,fig.height=6,fig.cap="Barrett's documentation"}
 
 key <- params$Map_EndoscopistIn
      if(!is.null(params$EndoscopistChooserIn)){
@@ -66,24 +73,22 @@ key <- params$Map_EndoscopistIn
         p2<-gghistogram(mydf, x = key, y = "PercentDocs", fill = "DocumentedElement", stat = "identity",position="dodge",
                         font.xtickslab = c(8, "bold", "#2E9FDF"),font.font.ytickslab = c(8, "bold", "#E7B800"))
      }
+p2 
+```
 
+```{r figs_Indic, echo=FALSE, warnings=FALSE,fig.width=7,fig.height=6,fig.cap="Distribution of Indications"}
 
 myIndics<-params$IndicsVsBiopsiesPre
 p3<-gghistogram(myIndics, x = "indicationsforexamination", y = "mean", stat = "identity", font.ytickslab=c(8, "bold", "red"),font.xtickslab=c(8, "bold", "red"))+ coord_flip()
 
+p3
+```
+
+```{r figsPolpys, echo=FALSE,warning=FALSE, fig.width=7,fig.height=6,fig.cap="Adenoma detection rate"}
 
 MyPolypTable<-tidyr::gather(params$GRS_perEndoscopist_TablePrep,key="DocumentedElement",value="percentage",-!!rlang::sym(params$Map_EndoscopistIn))
 p4<-gghistogram(MyPolypTable, x = "DocumentedElement", y = "percentage", stat = "identity",position="dodge",
   font.xtickslab = c(8, "bold", "#2E9FDF"),font.font.ytickslab = c(8, "bold", "#E7B800"))
 
-
-p1
-p2
-p3
 p4
-
-
-
-
 ```
-

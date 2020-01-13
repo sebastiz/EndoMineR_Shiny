@@ -1910,18 +1910,32 @@ server <- function(input, output,session) {
   
   
   data <- reactive({
+    #browser()
+    
+    #Accomodate situations where there may be no images
+    
+    if(!is.null(RV3$data$url)){
     data <- data.frame(RV3$data[,input$Map_HospitalNumberIn],
                        RV3$data[,input$Map_EndoscopistIn],
                        RV3$data[,input$Map_FindingsIn],
                        RV3$data[,input$Map_MicroscopicTextIn],
                        RV3$data$url)
-
     names(data)<-c(input$Map_HospitalNumberIn,input$Map_EndoscopistIn,input$Map_FindingsIn,input$Map_MicroscopicTextIn,"Image")
     if(!is.null(input$EndoscopistChooserIn)){
       data<-data%>%filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn)%>%select(input$Map_HospitalNumberIn,input$Map_FindingsIn,input$Map_MicroscopicTextIn,Image)
     }
+    }
       
-      
+      else{
+        data <- data.frame(RV3$data[,input$Map_HospitalNumberIn],
+                           RV3$data[,input$Map_EndoscopistIn],
+                           RV3$data[,input$Map_FindingsIn],
+                           RV3$data[,input$Map_MicroscopicTextIn])
+        names(data)<-c(input$Map_HospitalNumberIn,input$Map_EndoscopistIn,input$Map_FindingsIn,input$Map_MicroscopicTextIn)
+        if(!is.null(input$EndoscopistChooserIn)){
+          data<-data%>%filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn)%>%select(input$Map_HospitalNumberIn,input$Map_FindingsIn,input$Map_MicroscopicTextIn)
+        }
+      }
     
     data
   })  
@@ -2229,7 +2243,6 @@ server <- function(input, output,session) {
       tempReport <- file.path(tempdir(), "report.Rmd")
       file.copy("report.Rmd", tempReport, overwrite = TRUE)
      
-      #browser()
       # Set up parameters to pass to Rmd document
       params <- list(EndoscopistChooserIn = input$EndoscopistChooserIn,
                      Map_EndoscopistIn=input$Map_EndoscopistIn,
@@ -2251,7 +2264,66 @@ server <- function(input, output,session) {
   )
 
   
+
   
+  
+  output$Allreports <- downloadHandler(
+    
+    
+    MyDownloadAll<-function(endoscopistName){
+      if(!is.null(endoscopistName)){
+      browser()
+      filename = paste0("report_",endoscopistName,".docx")
+      content = function(file) {
+        
+        tempReport <- file.path(tempdir(), "report.Rmd")
+        file.copy("report.Rmd", tempReport, overwrite = TRUE)
+        
+        # Set up parameters to pass to Rmd document
+        params <- list(EndoscopistChooserIn = endoscopistName,
+                       Map_EndoscopistIn=input$Map_EndoscopistIn,
+                       BarrEQPerformFinalTable=BarrEQPerformFinalTable(),
+                       EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
+                       performanceTable=data(),
+                       IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
+                       GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
+        )
+        
+        rmarkdown::render(tempReport, output_file = file,
+                          params = params,
+                          envir = new.env(parent = globalenv())
+        )
+      }
+      
+    }},
+    #browser(),
+    lapply(as.list(RV3$data[,input$Map_EndoscopistIn]),function(x) MyDownloadAll(x))
+    #browser()
+    #k<-RV4$data[,input$Map_EndoscopistIn],
+    # for (i in k){
+    #   filename = paste0("report_",RV4$data[,input$Map_EndoscopistIn][i],".docx")
+    #   content = function(file) {
+    #     
+    #     tempReport <- file.path(tempdir(), "report.Rmd")
+    #     file.copy("report.Rmd", tempReport, overwrite = TRUE)
+    #     
+    #     # Set up parameters to pass to Rmd document
+    #     params <- list(EndoscopistChooserIn = RV4$data[,input$Map_EndoscopistIn][i],
+    #                    Map_EndoscopistIn=input$Map_EndoscopistIn,
+    #                    BarrEQPerformFinalTable=BarrEQPerformFinalTable(),
+    #                    EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
+    #                    performanceTable=data(),
+    #                    IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
+    #                    GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
+    #     )
+    #     
+    #     zip::zipr(rmarkdown::render(tempReport, output_file = file,
+    #                       params = params,
+    #                       envir = new.env(parent = globalenv())),RV4$data[,input$Map_EndoscopistIn][i]
+    #     )
+    #     }
+    # }
+  )  
   
   
   }

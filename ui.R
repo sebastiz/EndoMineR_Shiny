@@ -486,6 +486,7 @@ tabPanel("Per Endoscopist Report",
                                
                                 uiOutput("EndoscopistChooser"),
                                 downloadButton("report", "Generate report"),
+                                downloadButton("Allreports", "Generate all reports"),
                                 DT::dataTableOutput("performanceTable"),
                                 "Box content here", br(), "More box content"),
                               
