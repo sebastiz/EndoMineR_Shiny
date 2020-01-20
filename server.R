@@ -1324,8 +1324,9 @@ server <- function(input, output,session) {
     selected_species <- BarrDDR_TableData$data[as.integer(input$BarrDDR_Table_rows_selected), ]
     variables <-    c(t(selected_species[,1]))
     mycolname <- colnames(selected_species)[1]
+    browser()
     df<-RV4$data[RV4$data[, mycolname] %in%  variables ,]
-    df%>%select(input$Map_HospitalNumberIn,input$Map_EndoscopyDateIn,input$Map_FindingsIn, input$Map_MicroscopicTextIn,contains("url"))
+    df%>%select(input$Map_HospitalNumberIn,input$Map_EndoscopyDateIn,input$Map_FindingsIn, input$Map_MicroscopicTextIn,CStage,MStage,IMorNoIM,FU_Type,TimeToNext,contains("url"))
     
   })
   
@@ -1993,7 +1994,33 @@ server <- function(input, output,session) {
   })
   
 
-  ########### Per endoscopist performance - also used for the markdown report so any changes here need to be reflected there too ############  
+  ########### Per endoscopist number of endoscopies done ############  
+  
+  
+  
+  
+  ProceduresDone <- reactive({
+    
+    if(!is.null(RV3$data)){
+      if(ncol(RV3$data>0)){
+        if(nrow(RV3$data>0)){
+          shiny::validate(
+            need(length(input$Map_EndoscopistIn) > 0,'Need to have an endoscopist label')
+          ) 
+          if(!is.null(input$EndoscopistChooserIn)){
+            #Only select the procedures done and the endoscopists column
+            #RV3$data %>% select(input$Map_EndoscopistIn,input$Map_ProcedurePerformedIn)%>%filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn) 
+            
+            infoData<-RV3$data%>% filter(get(input$Map_EndoscopistIn) == input$EndoscopistChooserIn)
+            data.frame(table(EndoMineR::ColumnCleanUp(infoData[,input$Map_ProcedurePerformedIn])))
+          }
+        }
+      }
+    }
+    
+  })
+  
+  
   
   
   #########::::: Performance: infoboxes#############
@@ -2161,22 +2188,33 @@ server <- function(input, output,session) {
     
     #browser()
     RV3$data$indicationsforexamination<-EndoMineR::ColumnCleanUp(RV3$data[,input$Map_IndicationsIn])
-    myBx_df<-separate_rows(RV3$data, indicationsforexamination, sep = ",", convert = FALSE)
+    myBx_df<-separate_rows(RV3$data, input$Map_IndicationsIn, sep = ",", convert = FALSE)
     myBx_df$indicationsforexamination<-gsub("^\\.","", myBx_df$indicationsforexamination)
     
-    #Then get average per indication
+    #Then get average per indication for that endoscopist
     myBx_df$NumBx<-HistolNumbOfBx(myBx_df$macroscopicdescription, "pieces")
     cc<-myBx_df %>% filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn) %>%
-      group_by(indicationsforexamination) %>%
-      dplyr::summarise(mean=mean(NumBx,na.rm=T),count=n(),ToTalNumBx=sum(NumBx,na.rm=T))%>%
-      filter(count>1,mean>0,!is.na(indicationsforexamination))
+      group_by(!!rlang::sym(input$Map_IndicationsIn)) %>%
+      dplyr::summarise(endoscopist_Mean=mean(NumBx,na.rm=T))%>%
+      filter(endoscopist_Mean>0,!is.na(!!rlang::sym(input$Map_IndicationsIn)))
+    names(cc)<-c("Indications","endoscopist_Mean")
+    #Now need to get the average for all the endoscopists
+    
+    cd<-myBx_df %>% group_by(!!rlang::sym(input$Map_IndicationsIn)) %>%
+      dplyr::summarise(all_Mean=mean(NumBx,na.rm=T))%>%
+      filter(all_Mean>0,!is.na(!!rlang::sym(input$Map_IndicationsIn)))
+    names(cd)<-c("Indications","all_Mean")
+    #Now merge 
+    merge(cd,cc,by=1)
+    
+    
     
   })
 
   
   output$IndicsVsBiopsies <- renderPlotly({
-    
-    IndicBiopsy<-ggplot( IndicsVsBiopsiesPre(),aes(x=indicationsforexamination,y=mean))+
+    MyIndicsvsBiopsy<-IndicsVsBiopsiesPre()
+    IndicBiopsy<-ggplot(MyIndicsvsBiopsy,aes(x=Indications,y=endoscopist_Mean))+
       geom_bar(stat="identity")+
       coord_flip()
     
@@ -2205,11 +2243,7 @@ server <- function(input, output,session) {
         if(!is.null(input$EndoscopistChooserIn)){
           key <- input$Map_EndoscopistIn
           RV4$data %>% filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn) 
-          
-          
         }
-        
-        
       }
     }
   }
@@ -2242,23 +2276,26 @@ server <- function(input, output,session) {
       # can happen when deployed).
       tempReport <- file.path(tempdir(), "report.Rmd")
       file.copy("report.Rmd", tempReport, overwrite = TRUE)
-     
+      browser()
       # Set up parameters to pass to Rmd document
       params <- list(EndoscopistChooserIn = input$EndoscopistChooserIn,
                      Map_EndoscopistIn=input$Map_EndoscopistIn,
+                     ProceduresDone=ProceduresDone(),
                      BarrEQPerformFinalTable=BarrEQPerformFinalTable(),
                      EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
                      performanceTable=data(),
                      IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
                      GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
                      )
-      
+      #browser()
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document
       # from the code in this app).
       rmarkdown::render(tempReport, output_file = file,
                         params = params,
-                        envir = new.env(parent = globalenv())
+                        envir = new.env(parent = globalenv()),
+                        
+                        #rmarkdown::draft("report2.Rmd", template = "jss_article", package = "rticles")
       )
     }
   )
@@ -2272,7 +2309,7 @@ server <- function(input, output,session) {
     
     MyDownloadAll<-function(endoscopistName){
       if(!is.null(endoscopistName)){
-      browser()
+      #browser()
       filename = paste0("report_",endoscopistName,".docx")
       content = function(file) {
         
@@ -2282,17 +2319,18 @@ server <- function(input, output,session) {
         # Set up parameters to pass to Rmd document
         params <- list(EndoscopistChooserIn = endoscopistName,
                        Map_EndoscopistIn=input$Map_EndoscopistIn,
+                       ProceduresDone=ProceduresDone(),
                        BarrEQPerformFinalTable=BarrEQPerformFinalTable(),
                        EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
                        performanceTable=data(),
                        IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
                        GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
         )
-        
+       
         rmarkdown::render(tempReport, output_file = file,
                           params = params,
-                          envir = new.env(parent = globalenv())
-        )
+                          envir = new.env(parent = globalenv()),
+                          )
       }
       
     }},

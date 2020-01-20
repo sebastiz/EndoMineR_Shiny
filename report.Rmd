@@ -1,15 +1,15 @@
 ---
-title: "Personalised Endoscopy Report for Evaluation and Continuous Training (PERFECT)"
+title: '`r paste0("Personalised Endoscopy Report for Evaluation and Continuous Training (PERFECT) for ",params$EndoscopistChooserIn,format(Sys.time(), "%d %B, %Y"))`'
 always_allow_html: yes
 output:
   word_document:
     fig_caption: true
     reference_docx: !expr here::here("word-styles-reference-01.docx")
-date: '`r format(Sys.time(), "%d %B, %Y")`'
-    
+
 params:
   EndoscopistChooserIn: NA
   Map_EndoscopistIn: NA
+  ProceduresDone: NA
   BarrEQPerformFinalTable: NA
   EndoscopyTypesDonePre: NA
   performanceTable: NA
@@ -30,9 +30,19 @@ library(kableExtra)
 
 ```
 
+\newpage
+***
+# Table of endoscopy and histology
+***
+\
+\
+
 ```{r,warning=FALSE,echo=FALSE,warning=FALSE}
 
 df<-params$performanceTable
+df[,1]<-Hmisc::capitalize(as.character(df[,1]))
+df[,2]<-Hmisc::capitalize(as.character(df[,2]))
+df[,3]<-Hmisc::capitalize(as.character(df[,3]))
 if(!is.null(df$Image)){
 df$Image<-gsub("<img src=\'","",df$Image)
 df$Image<-gsub("'>","",df$Image)
@@ -40,55 +50,150 @@ df$Image<-gsub("%20"," ",df$Image)
 df$Image<-gsub("!\\[\\]\\(",paste0("!\\[\\]\\(",here::here(),"/www/"),df$Image)
 df[,params$EndoscopistChooserIn]<-NULL
 names(df)<-c("Endoscopist","Findings","Histology","Images")
+
+#Try to neaten up the Histology read-out:
+
+Histology<-gsub("^\\.\\s+","")
+
+
 pander(df[,1:4],justify = c('left'),split.table = Inf)
 } else {
   df[,params$EndoscopistChooserIn]<-NULL
-  names(df)<-c("Endoscopist","Findings","Histology")
+  names(df)<-c("Hospital No.","Findings","Histology")
 pander(df[,1:3],justify = c('left'),split.table = Inf)
   
 }
 
 
-
 ```
 
-```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=6,fig.cap="Barrett's Histopathological Grade"}
+
+\newpage
+***
+# Barretts metrics
+***
+
+```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=4,fig.align="center"}
 
 key <- params$Map_EndoscopistIn
     if(!is.null(params$EndoscopistChooserIn)){
         if(length(params$EndoscopyTypesDonePre)>0){
-          p1<-gghistogram(params$EndoscopyTypesDonePre, x = "IMorNoIM",fill = "endoscopist", stat="count",
-                          font.xtickslab = c(8, "bold", "#2E9FDF"),font.font.ytickslab = c(8, "bold", "#E7B800"))
+          p1<-gghistogram(params$EndoscopyTypesDonePre,title="Barrett's Histopathological Grade", x = "IMorNoIM",fill = "endoscopist", stat="count",font.xtickslab = c(14, "bold", "#2E9FDF"),font.ytickslab = c(14, "bold", "#2E9FDF"))+
+            guides(fill=FALSE)+
+            theme(axis.title.x=element_blank())+
+            theme(legend.position = "right")+
+            theme(plot.title = element_text(hjust = 0.5))+
+   theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
+                    theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain")) 
+           
         }
     }
 
-p1
+
+
+
+
+
+      if(!is.null(params$EndoscopistChooserIn)){
+         mydf<-params$BarrEQPerformFinalTable %>% filter(get(params$Map_EndoscopistIn) == params$EndoscopistChooserIn)
+         p2<-gghistogram(mydf, title="Barrett's documentation",x = key, y = "PercentDocs", fill = "DocumentedElement", stat = "identity",position="dodge",font.font.ytickslab = c(14, "bold", "#2E9FDF"))+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+        theme(legend.position = "bottom")+
+           theme(legend.title = element_blank())+
+           theme(plot.title = element_text(hjust = 0.5))+
+   theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
+                    theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))+
+            labs(y="Percentage of Reports")
+      }
+
+BarrettsCases<-params$EndoscopyTypesDonePre
+
+ExpectedNumber <-BarrettsCases %>% summarise(MeanDiff = (sum(NumBx,na.rm=TRUE)-((mean(CStage,na.rm=TRUE)+1)*2)))
+
+ggarrange(p1,p2,ncol = 1, nrow = 2)
 ```
 
-```{r figs_BarrettsDocumentation, echo=FALSE, warning=FALSE,fig.width=7,fig.height=6,fig.cap="Barrett's documentation"}
+# On average you took  **`r text_spec(ExpectedNumber$MeanDiff, color = "red")`** biopsies versus the expected number of biopsies you should have taken for your Barrett's cases.
 
-key <- params$Map_EndoscopistIn
-     if(!is.null(params$EndoscopistChooserIn)){
-        mydf<-params$BarrEQPerformFinalTable %>% filter(get(params$Map_EndoscopistIn) == params$EndoscopistChooserIn)
-        p2<-gghistogram(mydf, x = key, y = "PercentDocs", fill = "DocumentedElement", stat = "identity",position="dodge",
-                        font.xtickslab = c(8, "bold", "#2E9FDF"),font.font.ytickslab = c(8, "bold", "#E7B800"))
-     }
-p2 
+\newpage
+***
+# Procedures performed
+***
+
+```{r figs_Proc, echo=FALSE, warning=FALSE,fig.width=8,fig.height=4,fig.align="center"}
+
+#Get the number of procedures performed tabulated for the histogram:
+MyProcedures<-params$ProceduresDone
+MyProcedures$Var1<-as.character(MyProcedures$Var1)
+
+
+ 
+ 
+   ggdotchart(MyProcedures, x = "Var1", y = "Freq",
+           palette = c("#00AFBB", "#E7B800", "#FC4E07"), # Custom color palette
+           sorting = "descending",                       # Sort value in descending order
+           add = "segments",                             # Add segments from y = 0 to dots
+           rotate = TRUE,                                # Rotate vertically
+           dot.size = 10,                                 # Large dot size
+           label = round(MyProcedures$Freq),                        # Add mpg values as dot labels
+           font.label = list(color = "white", size = 12, 
+                             vjust = 0.5),               # Adjust label parameters
+           ggtheme = theme_pubr()                        # ggplot2 theme
+           )
+                      
+
+
+
 ```
 
-```{r figs_Indic, echo=FALSE, warnings=FALSE,fig.width=7,fig.height=6,fig.cap="Distribution of Indications"}
+\newpage
+***
+# Biopsies taken per indication
+***
 
+```{r figs_Indic, echo=FALSE, warning=FALSE,fig.width=9,fig.height=4,fig.align="center"}
 myIndics<-params$IndicsVsBiopsiesPre
-p3<-gghistogram(myIndics, x = "indicationsforexamination", y = "mean", stat = "identity", font.ytickslab=c(8, "bold", "red"),font.xtickslab=c(8, "bold", "red"))+ coord_flip()
+Mydata<-tidyr::gather(myIndics,"key","biopsyNumber",all_Mean:endoscopist_Mean)
+ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
+           group="key",color="key",
+           palette = c("#00AFBB", "#E7B800", "#FC4E07"), # Custom color palette
+           sorting = "descending",                       # Sort value in descending order
+           add = "segments",                             # Add segments from y = 0 to dots
+           rotate = TRUE,                                # Rotate vertically
+           dot.size = 10,                                 # Large dot size
+           label = round(Mydata$biopsyNumber),                        # Add mpg values as dot labels
+           font.label = list(color = "white", size = 12, 
+                             vjust = 0.5),               # Adjust label parameters
+           ggtheme = theme_pubr()                        # ggplot2 theme
+           )+
+   labs(y="Number of biopsies")+
+ labs(x="Indications")
 
-p3
+
+
+
 ```
 
-```{r figsPolpys, echo=FALSE,warning=FALSE, fig.width=7,fig.height=6,fig.cap="Adenoma detection rate"}
+
+\newpage
+***
+# Adenoma detection and subtypes
+***
+
+```{r figsPolpys, echo=FALSE,warning=FALSE, fig.width=7,fig.height=4,fig.align="center"}
 
 MyPolypTable<-tidyr::gather(params$GRS_perEndoscopist_TablePrep,key="DocumentedElement",value="percentage",-!!rlang::sym(params$Map_EndoscopistIn))
-p4<-gghistogram(MyPolypTable, x = "DocumentedElement", y = "percentage", stat = "identity",position="dodge",
-  font.xtickslab = c(8, "bold", "#2E9FDF"),font.font.ytickslab = c(8, "bold", "#E7B800"))
+p4<-gghistogram(MyPolypTable, title="",x = "DocumentedElement", y = "percentage", stat = "identity",position="dodge",fill="black")+
+  theme(axis.title.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+   theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
+                    theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))
+
 
 p4
 ```
+
