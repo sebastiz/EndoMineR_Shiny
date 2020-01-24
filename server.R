@@ -481,6 +481,7 @@ server <- function(input, output,session) {
   observeEvent(input$textPrep,{
     mywordsOGD<-input$caption
     mywordsOGD<-unlist(strsplit(mywordsOGD,";"))
+    #browser()
     RV$data<-withProgress(message = 'Splitting the data...spell checking....term mapping against lexicons.....cleaning columns....formatting columns...',textPrep(RV$data[,1],mywordsOGD))
     saveData(formData())
     
@@ -2315,7 +2316,7 @@ server <- function(input, output,session) {
         
         tempReport <- file.path(tempdir(), "report.Rmd")
         file.copy("report.Rmd", tempReport, overwrite = TRUE)
-        
+        browser()
         # Set up parameters to pass to Rmd document
         params <- list(EndoscopistChooserIn = endoscopistName,
                        Map_EndoscopistIn=input$Map_EndoscopistIn,

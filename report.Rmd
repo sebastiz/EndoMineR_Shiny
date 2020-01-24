@@ -43,6 +43,15 @@ df<-params$performanceTable
 df[,1]<-Hmisc::capitalize(as.character(df[,1]))
 df[,2]<-Hmisc::capitalize(as.character(df[,2]))
 df[,3]<-Hmisc::capitalize(as.character(df[,3]))
+
+#Need to split the sentence up so can do negative remove on each sentence.
+#Capitalise each sentence by simple gsubbing or recognition of a full stop (need to improve for bullet points though)
+standardisedTextOutput<-str_split(df[,3], "\\.")
+standardisedTextOutput<-lapply(standardisedTextOutput, function(x) NegativeRemove(x))
+#Then need to recombine into one text:
+df$NoNegatives<-sapply(standardisedTextOutput, function(x) paste(x,collapse="."))
+
+
 if(!is.null(df$Image)){
 df$Image<-gsub("<img src=\'","",df$Image)
 df$Image<-gsub("'>","",df$Image)
@@ -56,11 +65,14 @@ names(df)<-c("Endoscopist","Findings","Histology","Images")
 Histology<-gsub("^\\.\\s+","")
 
 
-pander(df[,1:4],justify = c('left'),split.table = Inf)
+pander(df[,1:5],justify = c('left'),split.table = Inf)
 } else {
+  df[,1]<-Hmisc::capitalize(as.character(df[,1]))
+df[,2]<-Hmisc::capitalize(as.character(df[,2]))
+df[,3]<-Hmisc::capitalize(as.character(df[,3]))
   df[,params$EndoscopistChooserIn]<-NULL
   names(df)<-c("Hospital No.","Findings","Histology")
-pander(df[,1:3],justify = c('left'),split.table = Inf)
+pander(df[,1:4],justify = c('left'),split.table = Inf)
   
 }
 

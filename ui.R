@@ -38,7 +38,7 @@ textPrepUI <- function(id) {
 
 
 
-ui <-function(request) {fluidPage(theme=shinytheme("simplex"),
+ui <-function(request) {fluidPage(theme=shinytheme("yeti"),
                                   useShinyjs(),
                                   #themeSelector(),  
                                   useShinyalert(), 
