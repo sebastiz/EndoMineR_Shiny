@@ -1,5 +1,5 @@
 ---
-title: '`r paste0("Personalised Endoscopy Report for Evaluation and Continuous Training (PERFECT) for ",params$EndoscopistChooserIn,format(Sys.time(), "%d %B, %Y"))`'
+title: '`r paste0("Personalised Endoscopy Report for Evaluation and Continuous Training (PERFECT) for ",params$EndoscopistChooserIn,format(Sys.time(), " %d %B, %Y"))`'
 always_allow_html: yes
 output:
   word_document:
@@ -15,9 +15,10 @@ params:
   performanceTable: NA
   IndicsVsBiopsiesPre: NA
   GRS_perEndoscopist_TablePrep: NA
+  polypLocationLowerGI: NA
 ---
 
-
+Please find enclosed a breakdown of results from your endoscopic assessments. The results are organised. At the end of the report there are metrics which you can compare your performance to.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -58,7 +59,7 @@ df$Image<-gsub("'>","",df$Image)
 df$Image<-gsub("%20"," ",df$Image)
 df$Image<-gsub("!\\[\\]\\(",paste0("!\\[\\]\\(",here::here(),"/www/"),df$Image)
 df[,params$EndoscopistChooserIn]<-NULL
-names(df)<-c("Endoscopist","Findings","Histology","Images")
+names(df)<-c("Endoscopist","Findings","Histology","Postive Diagnoses only","Images")
 
 #Try to neaten up the Histology read-out:
 
@@ -71,22 +72,21 @@ pander(df[,1:5],justify = c('left'),split.table = Inf)
 df[,2]<-Hmisc::capitalize(as.character(df[,2]))
 df[,3]<-Hmisc::capitalize(as.character(df[,3]))
   df[,params$EndoscopistChooserIn]<-NULL
-  names(df)<-c("Hospital No.","Findings","Histology")
+  names(df)<-c("Hospital No.","Findings","Histology","Postive Diagnoses only")
 pander(df[,1:4],justify = c('left'),split.table = Inf)
   
 }
 
 
 ```
-
-
 \newpage
 ***
 # Barretts metrics
 ***
 
-```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=4,fig.align="center"}
+```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=4,fig.align="center",fig.cap="Performance associated with your Barrett's endoscopies"}
 
+if(nrow(params$EndoscopyTypesDonePre)>0){
 key <- params$Map_EndoscopistIn
     if(!is.null(params$EndoscopistChooserIn)){
         if(length(params$EndoscopyTypesDonePre)>0){
@@ -121,13 +121,19 @@ key <- params$Map_EndoscopistIn
       }
 
 BarrettsCases<-params$EndoscopyTypesDonePre
-
+if(!is.null(BarrettsCases$NumBx)){
+  if(!is.null(BarrettsCases$CStage)){
 ExpectedNumber <-BarrettsCases %>% summarise(MeanDiff = (sum(NumBx,na.rm=TRUE)-((mean(CStage,na.rm=TRUE)+1)*2)))
-
+  }
+}
 ggarrange(p1,p2,ncol = 1, nrow = 2)
+
+}
 ```
 
-# On average you took  **`r text_spec(ExpectedNumber$MeanDiff, color = "red")`** biopsies versus the expected number of biopsies you should have taken for your Barrett's cases.
+
+
+#   `r ifelse(exists("ExpectedNumber$MeanDiff"),paste0("On average you took",text_spec(ExpectedNumber$MeanDiff, color = "red"),"biopsies versus the expected number of biopsies you should have taken for your Barrett's cases."),"")`
 
 \newpage
 ***
@@ -135,6 +141,7 @@ ggarrange(p1,p2,ncol = 1, nrow = 2)
 ***
 
 ```{r figs_Proc, echo=FALSE, warning=FALSE,fig.width=8,fig.height=4,fig.align="center"}
+if(nrow(params$ProceduresDone)>0){
 
 #Get the number of procedures performed tabulated for the histogram:
 MyProcedures<-params$ProceduresDone
@@ -156,7 +163,7 @@ MyProcedures$Var1<-as.character(MyProcedures$Var1)
            )
                       
 
-
+}
 
 ```
 
@@ -166,6 +173,8 @@ MyProcedures$Var1<-as.character(MyProcedures$Var1)
 ***
 
 ```{r figs_Indic, echo=FALSE, warning=FALSE,fig.width=9,fig.height=4,fig.align="center"}
+
+if(nrow(params$IndicsVsBiopsiesPre)>0){
 myIndics<-params$IndicsVsBiopsiesPre
 Mydata<-tidyr::gather(myIndics,"key","biopsyNumber",all_Mean:endoscopist_Mean)
 ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
@@ -182,7 +191,7 @@ ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
            )+
    labs(y="Number of biopsies")+
  labs(x="Indications")
-
+}
 
 
 
@@ -195,17 +204,32 @@ ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
 ***
 
 ```{r figsPolpys, echo=FALSE,warning=FALSE, fig.width=7,fig.height=4,fig.align="center"}
-
+if(nrow(params$GRS_perEndoscopist_TablePrep)>0){
 MyPolypTable<-tidyr::gather(params$GRS_perEndoscopist_TablePrep,key="DocumentedElement",value="percentage",-!!rlang::sym(params$Map_EndoscopistIn))
 p4<-gghistogram(MyPolypTable, title="",x = "DocumentedElement", y = "percentage", stat = "identity",position="dodge",fill="black")+
   theme(axis.title.x=element_blank(),
         axis.ticks.x=element_blank())+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  theme(axis.text.x=element_text(angle=45, hjust=1,size = 8))+
    theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
                     theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))
 
 
+if(nrow(params$polypLocationLowerGI)>0){
+myPolypsLocation<-params$polypLocationLowerGI
+
+
+p3<-gghistogram(myPolypsLocation, title="",x = "lowerGIPolyps", y = "Freq", stat = "identity",position="dodge",fill="black")+
+  theme(axis.title.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x=element_text(angle=45, hjust=1,size = 8))+
+   theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
+                    theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))
+
+}
+p3
 p4
+}
 ```
 

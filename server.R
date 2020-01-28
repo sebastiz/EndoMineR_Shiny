@@ -113,7 +113,6 @@ server <- function(input, output,session) {
   
   saveData <- function(data) {
     
-    #browser()
     if(!is.null(loadData())){
       dataOld<-loadData()
       #Make sure the names match up between loaded data and new data
@@ -154,14 +153,9 @@ server <- function(input, output,session) {
   
   saveDataHistolNum <- function(data) {
     
-    #browser()
     if(!is.null(loadDataHistolNum())){
-      
-      #dataOld<-loadDataMapping()
       #Make sure the names match up between loaded data and new data
-      #colnames(dataOld)<-c("Map_EndoscopistIn","Map_ProcedurePerformedIn","Map_EndoscopyDateIn","Map_FindingsIn","Map_Findings2In","Map_MacroscopicTextIn","Map_MicroscopicTextIn")
       data<-data.frame(as.list(data))
-      #browser()
       colnames(data)<-c("Map_MacroscopicTextDelimIn")
       data
     }
@@ -194,9 +188,7 @@ server <- function(input, output,session) {
         if(!is.null(loadDataMapping())){
       
       #Make sure the names match up between loaded data and new data
-      #colnames(dataOld)<-c("Map_EndoscopistIn","Map_ProcedurePerformedIn","Map_EndoscopyDateIn","Map_FindingsIn","Map_Findings2In","Map_MacroscopicTextIn","Map_MicroscopicTextIn")
       data<-data.frame(as.list(data))
-      #browser()
       colnames(data)<-c("Map_EndoscopistIn","Map_EndoscopistIn","Map_ProcedurePerformedIn","Map_EndoscopyDateIn","Map_FindingsIn",
                         "Map_Findings2In",
                         "Map_EventsIn",
@@ -1716,7 +1708,7 @@ server <- function(input, output,session) {
       need(length(input$GRS_Table_rows_selected) > 0, "Select rows to drill down!")
     )    
     
-    #browser()
+    browser()
     selected_species <- GRS_TableData$data[as.integer(input$GRS_Table_rows_selected), ]
     variables <-    c(t(as.character(selected_species[,1])))
     mycolname <- colnames(selected_species)[1]
@@ -2078,14 +2070,34 @@ server <- function(input, output,session) {
     
   })
     
+  polypLocationLowerGI<-reactive({
+    browser()
+    if(!is.null(input$EndoscopistChooserIn)){
+      mydss<-polypData$data %>% filter(get(input$Map_EndoscopistIn) == input$EndoscopistChooserIn)
+      
+      #Get unfiltered list of all polyp locations:
+      mydss2<-HistolTypeAndSite(mydss[,input$Map_MacroscopicTextIn],mydss[,input$Map_MicroscopicTextIn],mydss[,input$Map_ProcedurePerformedIn])
+
+      #Tidy it up so it is not in a list anymore:
+      allMyPolyps<-lapply(mydss2[1], function(x) paste(x, collapse=","))
+      allMyPolyps<-as.character(allMyPolyps[1])
+      hi<-strsplit(allMyPolyps,",")
+      hi<-data.frame(hi,stringsAsFactors = F)
+      names(hi)<-"Polyp"
+      
+      #Filter for just the lower GI polyps:
+      lowerGIPolyps<-hi[grepl(tolower(paste0(unlist(LocationListLower(),use.names=F),collapse="|")),hi$Polyp),]
+      lowerGIPolyps<-data.frame(lowerGIPolyps,stringsAsFactors = F)
+      lowerGIPolyps<-lowerGIPolyps[grepl("polyp",lowerGIPolyps$lowerGIPolyps),]
+      
+      #Get frequency
+      data.frame(table(lowerGIPolyps),stringsAsFactors = F)
+      }
     
+  })  
     
   
   output$GRS_perEndoscopist_Table = DT::renderDT({
-    # if(!is.null(input$EndoscopistChooserIn)){
-    # GRS_TableData$data %>% filter(get(input$Map_EndoscopistIn) == input$EndoscopistChooserIn)
-    # }
-    #browser()
     if(!is.null(input$EndoscopistChooserIn)){
       GRS_perEndoscopist_TablePrep()
     }
@@ -2148,15 +2160,13 @@ server <- function(input, output,session) {
         if(nrow(RV4$data>0)){
           
           key <- input$Map_EndoscopistIn
-          
-          
+
           if(!is.null(input$EndoscopistChooserIn)){
             p <- BarrEQPerformFinalTable() %>% filter(get(input$Map_EndoscopistIn) == input$EndoscopistChooserIn) %>% ggplot+ aes_string(x = key, y = "PercentDocs", fill = "DocumentedElement") + geom_bar(stat = "identity",position="dodge") + theme(axis.text.x = element_text(angle = -90))
           
           ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
           }
-          
-          
+
         }
       }}
     
@@ -2169,18 +2179,12 @@ server <- function(input, output,session) {
   ############:::::  Plot Quality Endoscopist vs Worst grade Plot  ############
   
   output$plotBarrQM_Perform <- renderPlotly({
-    
-
-          
           if(!is.null(input$EndoscopistChooserIn)){
             key <- input$Map_EndoscopistIn
             p<-RV4$data %>% filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn) %>%
               ggplot + aes_string(x = "IMorNoIM", fill = "endoscopist") + geom_histogram(stat = "count")
             ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
           }
-          
-          
-
   })
   
   
@@ -2257,7 +2261,6 @@ server <- function(input, output,session) {
   output$EndoscopyTypesDone <- renderPlotly({
     if(!is.null(input$EndoscopistChooserIn)){
       if(nrow(EndoscopyTypesDonePre())>0){
-      #browser()
         df<-EndoscopyTypesDonePre()
       p<-ggplot(df,aes_string(x = "IMorNoIM", fill = "endoscopist")) + geom_histogram(stat = "count")
 
@@ -2286,9 +2289,9 @@ server <- function(input, output,session) {
                      EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
                      performanceTable=data(),
                      IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
-                     GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
+                     GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep(),
+                     polypLocationLowerGI=polypLocationLowerGI()
                      )
-      #browser()
       # Knit the document, passing in the `params` list, and eval it in a
       # child of the global environment (this isolates the code in the document
       # from the code in this app).
@@ -2296,7 +2299,6 @@ server <- function(input, output,session) {
                         params = params,
                         envir = new.env(parent = globalenv()),
                         
-                        #rmarkdown::draft("report2.Rmd", template = "jss_article", package = "rticles")
       )
     }
   )
@@ -2310,13 +2312,12 @@ server <- function(input, output,session) {
     
     MyDownloadAll<-function(endoscopistName){
       if(!is.null(endoscopistName)){
-      #browser()
       filename = paste0("report_",endoscopistName,".docx")
       content = function(file) {
         
         tempReport <- file.path(tempdir(), "report.Rmd")
         file.copy("report.Rmd", tempReport, overwrite = TRUE)
-        browser()
+        
         # Set up parameters to pass to Rmd document
         params <- list(EndoscopistChooserIn = endoscopistName,
                        Map_EndoscopistIn=input$Map_EndoscopistIn,
@@ -2325,7 +2326,8 @@ server <- function(input, output,session) {
                        EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
                        performanceTable=data(),
                        IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
-                       GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
+                       GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep(),
+                       polypLocationLowerGI=polypLocationLowerGI()
         )
        
         rmarkdown::render(tempReport, output_file = file,
@@ -2335,33 +2337,8 @@ server <- function(input, output,session) {
       }
       
     }},
-    #browser(),
     lapply(as.list(RV3$data[,input$Map_EndoscopistIn]),function(x) MyDownloadAll(x))
-    #browser()
-    #k<-RV4$data[,input$Map_EndoscopistIn],
-    # for (i in k){
-    #   filename = paste0("report_",RV4$data[,input$Map_EndoscopistIn][i],".docx")
-    #   content = function(file) {
-    #     
-    #     tempReport <- file.path(tempdir(), "report.Rmd")
-    #     file.copy("report.Rmd", tempReport, overwrite = TRUE)
-    #     
-    #     # Set up parameters to pass to Rmd document
-    #     params <- list(EndoscopistChooserIn = RV4$data[,input$Map_EndoscopistIn][i],
-    #                    Map_EndoscopistIn=input$Map_EndoscopistIn,
-    #                    BarrEQPerformFinalTable=BarrEQPerformFinalTable(),
-    #                    EndoscopyTypesDonePre=EndoscopyTypesDonePre(),
-    #                    performanceTable=data(),
-    #                    IndicsVsBiopsiesPre=IndicsVsBiopsiesPre(),
-    #                    GRS_perEndoscopist_TablePrep=GRS_perEndoscopist_TablePrep()
-    #     )
-    #     
-    #     zip::zipr(rmarkdown::render(tempReport, output_file = file,
-    #                       params = params,
-    #                       envir = new.env(parent = globalenv())),RV4$data[,input$Map_EndoscopistIn][i]
-    #     )
-    #     }
-    # }
+
   )  
   
   

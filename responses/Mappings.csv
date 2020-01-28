@@ -1,2 +1,2 @@
 "Map_EndoscopistIn","Map_EndoscopistIn","Map_ProcedurePerformedIn","Map_EndoscopyDateIn","Map_FindingsIn","Map_Findings2In","Map_EventsIn","Map_MacroscopicTextIn","Map_MicroscopicTextIn","ImageMerge_DelimTextPickersIn","Map_MedicationsIn","Map_MacroscopicTextDelimIn","Map_InstrumentIn","Map_IndicationsIn"
-"HospitalNum","endoscopist","procedureperformed","Date","findings.x","findings.x","findings.x","macroscopicdescription","microscopicdescription","Procedure Number:","medications.x","specimen","instrument","indicationsforexamination"
+"HospitalNum","endoscopist","procedureperformed","Date","findings.x","findings.x","findings.x","macroscopicdescription","microscopicdescription","Procedure Number","medications.x","pieces","instrument","indicationsforexamination"
