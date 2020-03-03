@@ -29,25 +29,25 @@ options(shiny.maxRequestSize=30*1024^2)
 options(shiny.sanitize.errors = TRUE)
 enableBookmarking(store = "url")
 
-RV <- reactiveValues(data = data.frame())
-RV2 <- reactiveValues(data = data.frame())
-RV3 <- reactiveValues(data = data.frame())
-RV4 <- reactiveValues(data = data.frame())
-Trim <- reactiveValues(data = data.frame())
-pivotData<-reactiveValues(data = data.frame())
-RV5 <- reactiveValues(data = data.frame())
-polypData <- reactiveValues(data = data.frame())
-polypTrim <- reactiveValues(data = data.frame())
+RV <- reactiveValues(data = data.frame()) #EndoscopyUpload
+RV2 <- reactiveValues(data = data.frame()) #PathologyUpload
+RV3 <- reactiveValues(data = data.frame()) #MergedDataset
+RV4 <- reactiveValues(data = data.frame()) #BarrettsDataset
+Trim <- reactiveValues(data = data.frame())  #Dead
+pivotData<-reactiveValues(data = data.frame())  #Dead
+RV5 <- reactiveValues(data = data.frame()) #Dead
+polypData <- reactiveValues(data = data.frame()) #Polyp
+polypTrim <- reactiveValues(data = data.frame()) #Polyp- esquiss chosen columns
 BarrDDR_TableData <- reactiveValues(data = data.frame())
-BarrTrim <- reactiveValues(data = data.frame())
+BarrTrim <- reactiveValues(data = data.frame()) #Barretts- - esquiss chosen columns
 BarrDDR_Table <- reactiveValues(data = data.frame())
-CustomData <- reactiveValues(data = data.frame())
-CustomTrim <- reactiveValues(data = data.frame())
-GRS_TableData <- reactiveValues(data = data.frame())
-ForGRS <- reactiveValues(data = data.frame())
-myhtml<-reactiveValues(data = data.frame())
-performanceData<-reactiveValues(data = data.frame())
-performanceTable<-reactiveValues(data = data.frame())
+CustomData <- reactiveValues(data = data.frame()) #Same as RV3
+CustomTrim <- reactiveValues(data = data.frame()) #Custom - esquiss chosen columns
+GRS_TableData <- reactiveValues(data = data.frame()) #For polyp table
+ForGRS <- reactiveValues(data = data.frame()) #Step For polyp table
+myhtml<-reactiveValues(data = data.frame()) # Separate out the html words images
+performanceData<-reactiveValues(data = data.frame()) #For the performance reports
+performanceTable<-reactiveValues(data = data.frame()) #For the performance reports
 
 
 #The save data fields fromt he input data text boxes:
@@ -69,7 +69,7 @@ fieldsHistolNum<-c("Map_MacroscopicTextDelimIn")
 
 ############## textPrep module   ###################################################### 
 
-
+#Redundant modular tryout
 textPreparation <- function(input, output, session, datastuff) {
   
   
@@ -1328,20 +1328,20 @@ server <- function(input, output,session) {
     
     #browser()
     
-    # if (!is.null(drilldataBarrd())) {  
-    #   
-    #   
-    #   
-    #   drilldataBarrd()[["Select"]]<-paste0('<input type="checkbox" name="row_selected" value="Row',1:nrow(drilldataBarrd()),'"><br>')
-    #   
-    #   drilldataBarrd()[["Actions"]]<-
-    #     paste0('
-    #            <div class="btn-group" role="group" aria-label="Basic example">
-    #            <button type="button" class="btn btn-secondary delete" id=delete_',1:nrow(drilldataBarrd()),'>Delete</button>
-    #            </div>
-    #            ')
-    # }
-    
+     # if (!is.null(drilldataBarrd())) {  
+     #   
+     #   
+     #   
+     #   drilldataBarrd()[["Select"]]<-paste0('<input type="checkbox" name="row_selected" value="Row',1:nrow(drilldataBarrd()),'"><br>')
+     #   
+     # drilldataBarrd()[["Actions"]]<-
+     #     paste0('
+     #            <div class="btn-group" role="group" aria-label="Basic example">
+     #            <button type="button" class="btn btn-secondary delete" id=delete_',1:nrow(drilldataBarrd()),'>Delete</button>
+     #            </div>
+     #            ')
+     # }
+     # 
     
     
     

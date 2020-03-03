@@ -65,7 +65,7 @@ names(df)<-c("Endoscopist","Findings","Histology","Postive Diagnoses only","Imag
 
 Histology<-gsub("^\\.\\s+","")
 
-
+names(df) <- pandoc.strong.return(names(df))
 pander(df[,1:5],justify = c('left'),split.table = Inf)
 } else {
   df[,1]<-Hmisc::capitalize(as.character(df[,1]))
@@ -73,7 +73,9 @@ df[,2]<-Hmisc::capitalize(as.character(df[,2]))
 df[,3]<-Hmisc::capitalize(as.character(df[,3]))
   df[,params$EndoscopistChooserIn]<-NULL
   names(df)<-c("Hospital No.","Findings","Histology","Postive Diagnoses only")
+  names(df) <- pandoc.strong.return(names(df))
 pander(df[,1:4],justify = c('left'),split.table = Inf)
+
   
 }
 
@@ -81,10 +83,10 @@ pander(df[,1:4],justify = c('left'),split.table = Inf)
 ```
 \newpage
 ***
-# Barretts metrics
+# Barretts metrics- Grade detection and documentation of key elements on reports
 ***
 
-```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=4,fig.align="center",fig.cap="Performance associated with your Barrett's endoscopies"}
+```{r figsBarrettsHistopath, echo=FALSE, warning=FALSE,fig.width=7,fig.height=4,fig.align="center"}
 
 if(nrow(params$EndoscopyTypesDonePre)>0){
 key <- params$Map_EndoscopistIn
@@ -117,7 +119,7 @@ key <- params$Map_EndoscopistIn
            theme(plot.title = element_text(hjust = 0.5))+
    theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
                     theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))+
-            labs(y="Percentage of Reports")
+            labs(y="% Reports")
       }
 
 BarrettsCases<-params$EndoscopyTypesDonePre
@@ -146,6 +148,7 @@ if(nrow(params$ProceduresDone)>0){
 #Get the number of procedures performed tabulated for the histogram:
 MyProcedures<-params$ProceduresDone
 MyProcedures$Var1<-as.character(MyProcedures$Var1)
+MyProcedures$Var1<-stringr::str_wrap(MyProcedures$Var1,50)
 
 
  
@@ -157,9 +160,10 @@ MyProcedures$Var1<-as.character(MyProcedures$Var1)
            rotate = TRUE,                                # Rotate vertically
            dot.size = 10,                                 # Large dot size
            label = round(MyProcedures$Freq),                        # Add mpg values as dot labels
-           font.label = list(color = "white", size = 12, 
-                             vjust = 0.5),               # Adjust label parameters
-           ggtheme = theme_pubr()                        # ggplot2 theme
+
+           ggtheme = theme_pubr(),                        # ggplot2 theme
+                      font.label = list(color = "white", size = 8, 
+                             vjust = 0.5)               # Adjust label parameters
            )
                       
 
@@ -169,13 +173,14 @@ MyProcedures$Var1<-as.character(MyProcedures$Var1)
 
 \newpage
 ***
-# Biopsies taken per indication
+# Biopsies taken per indication- Your biopsies versus the average number of biopsies taken for that indication
 ***
 
 ```{r figs_Indic, echo=FALSE, warning=FALSE,fig.width=9,fig.height=4,fig.align="center"}
 
 if(nrow(params$IndicsVsBiopsiesPre)>0){
 myIndics<-params$IndicsVsBiopsiesPre
+myIndics$Indications<-stringr::str_wrap(myIndics$Indications,50)
 Mydata<-tidyr::gather(myIndics,"key","biopsyNumber",all_Mean:endoscopist_Mean)
 ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
            group="key",color="key",
@@ -185,9 +190,10 @@ ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
            rotate = TRUE,                                # Rotate vertically
            dot.size = 10,                                 # Large dot size
            label = round(Mydata$biopsyNumber),                        # Add mpg values as dot labels
-           font.label = list(color = "white", size = 12, 
-                             vjust = 0.5),               # Adjust label parameters
-           ggtheme = theme_pubr()                        # ggplot2 theme
+
+           ggtheme = theme_pubr(),                        # ggplot2 theme
+                      font.label = list(color = "white", size = 8, 
+                             vjust = 0.5)               # Adjust label parameters
            )+
    labs(y="Number of biopsies")+
  labs(x="Indications")
@@ -200,7 +206,7 @@ ggdotchart(Mydata, x = "Indications", y = "biopsyNumber",
 
 \newpage
 ***
-# Adenoma detection and subtypes
+# Adenoma detection and subtypes- Your adenoma detection rate broken down by histopathological subtype
 ***
 
 ```{r figsPolpys, echo=FALSE,warning=FALSE, fig.width=7,fig.height=4,fig.align="center"}
@@ -215,6 +221,12 @@ p4<-gghistogram(MyPolypTable, title="",x = "DocumentedElement", y = "percentage"
                     theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))
 
 
+
+p4
+}
+```
+
+```{r figsPolpysLocation, echo=FALSE,warning=FALSE, fig.width=7,fig.height=4,fig.align="center"}
 if(nrow(params$polypLocationLowerGI)>0){
 myPolypsLocation<-params$polypLocationLowerGI
 
@@ -227,9 +239,7 @@ p3<-gghistogram(myPolypsLocation, title="",x = "lowerGIPolyps", y = "Freq", stat
    theme(axis.title.y = element_text(color = "grey20", size = 16, angle = 90, hjust = .5, vjust = .5, face = "plain"))+
                     theme(axis.text.y = element_text(color = "grey20", size = 12, angle = 0, hjust = 1, vjust = 0, face = "plain"))
 
-}
 p3
-p4
 }
-```
 
+```
