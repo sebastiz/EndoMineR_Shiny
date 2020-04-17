@@ -1,0 +1,64 @@
+
+---
+title: ""
+author: ""
+date: ""
+output:
+  word_document:
+    fig_caption: true
+    reference_docx: !expr here::here("headed.docx")
+params:
+  data: "x"
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=FALSE,include = FALSE}
+params$data
+```
+
+
+
+
+`r format(Sys.time(), " %d %B, %Y") `
+\
+\
+\
+`r params$data$Date` 
+\
+`r params$data$FU_Type`&nbsp;
+\
+`r params$data$Date`&nbsp;
+\
+`r params$data$FU_Type`&nbsp;
+\
+`r params$data$Date`&nbsp;
+\
+
+Dear `r params$data$HospitalNum`
+\
+
+I've now had a chance to look at the biopsies we took at endoscopy on `r params$data$Date`. These have shown no worrying cellular changes. I have therefore booked a further endoscopy which should take place around `r params$data$FU_Type`
+\
+\
+I hope you find these results reassuring and I look forward to seeing you at the next endoscopy.
+\
+\
+Yours sincerely
+\
+\
+\
+
+![](here::here("images","Signature.png"))
+\
+Dr Sebastian Zeki MBBS MRCP PhD
+\
+Consultant Gastroenterologist
+\
+Department of Gastroenterology
+\
+Westminster Bridge Road
+\
+London SE1 7EH

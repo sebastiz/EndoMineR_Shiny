@@ -37,6 +37,17 @@ textPrepUI <- function(id) {
 
 
 
+js <- '
+Shiny.addCustomMessageHandler("download", function(b64){
+  const a = document.createElement("a");
+  document.body.append(a);
+  a.download = "letter.docx";
+  a.href = b64;
+  a.click();
+  a.remove();
+})
+'
+
 
 ui <-function(request) {fluidPage(theme=shinytheme("yeti"),
                                   useShinyjs(),
@@ -53,10 +64,13 @@ ui <-function(request) {fluidPage(theme=shinytheme("yeti"),
                        }
                        Shiny.onInputChange("checked_rows",checkboxesChecked);
                        })')),
-      tags$script("$(document).on('click', '#Main_table button', function () {
+            tags$head(tags$script(HTML(js))),
+      tags$script("$(document).on('click', '#mergedTable button', function () {
                   Shiny.onInputChange('lastClickId',this.id);
                   Shiny.onInputChange('lastClick', Math.random())
                   });"),
+
+      
       tags$style("html, body {overflow: visible !important;.rpivotTable{ overflow-x: scroll; }"),
       tags$style(type="text/css",
                  ".shiny-output-error { visibility: hidden; }",
@@ -346,6 +360,7 @@ bookmarkButton()),
                           box(collapsible = T,collapsed=FALSE,
                               title = "Results Drill down Table", status = "warning", solidHeader = TRUE,
                               DT::dataTableOutput("drilldownBarr"))
+                          
                               ),
                         
                         

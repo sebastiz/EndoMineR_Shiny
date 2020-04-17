@@ -38,7 +38,10 @@ library(kableExtra)
 \
 \
 
-```{r,warning=FALSE,echo=FALSE,warning=FALSE}
+# Cancer Diagnoses Table
+
+
+```{r cancerTable,warning=FALSE,echo=FALSE,warning=FALSE}
 
 df<-params$performanceTable
 df[,1]<-Hmisc::capitalize(as.character(df[,1]))
@@ -50,7 +53,10 @@ df[,3]<-Hmisc::capitalize(as.character(df[,3]))
 standardisedTextOutput<-str_split(df[,3], "\\.")
 standardisedTextOutput<-lapply(standardisedTextOutput, function(x) NegativeRemove(x))
 #Then need to recombine into one text:
+
 df$NoNegatives<-sapply(standardisedTextOutput, function(x) paste(x,collapse="."))
+#df$NoNegatives
+    df<-df%>%filter(grepl("adenocar|malign|cancer|carcinoma",NoNegatives))
 
 
 if(!is.null(df$Image)){
@@ -72,14 +78,124 @@ pander(df[,1:5],justify = c('left'),split.table = Inf)
 df[,2]<-Hmisc::capitalize(as.character(df[,2]))
 df[,3]<-Hmisc::capitalize(as.character(df[,3]))
   df[,params$EndoscopistChooserIn]<-NULL
+
   names(df)<-c("Hospital No.","Findings","Histology","Postive Diagnoses only")
   names(df) <- pandoc.strong.return(names(df))
 pander(df[,1:4],justify = c('left'),split.table = Inf)
 
-  
 }
 
 
+```
+
+
+<br>
+<br>
+<br>
+
+# Dysplasia Table
+
+<br>
+<br>
+<br>
+
+```{r dysplasiaTable,warning=FALSE,echo=FALSE,warning=FALSE}
+
+df<-params$performanceTable
+df[,1]<-Hmisc::capitalize(as.character(df[,1]))
+df[,2]<-Hmisc::capitalize(as.character(df[,2]))
+df[,3]<-Hmisc::capitalize(as.character(df[,3]))
+
+#Need to split the sentence up so can do negative remove on each sentence.
+#Capitalise each sentence by simple gsubbing or recognition of a full stop (need to improve for bullet points though)
+standardisedTextOutput<-str_split(df[,3], "\\.")
+standardisedTextOutput<-lapply(standardisedTextOutput, function(x) NegativeRemove(x))
+#Then need to recombine into one text:
+
+df$NoNegatives<-sapply(standardisedTextOutput, function(x) paste(x,collapse="."))
+#df$NoNegatives
+    df<-df%>%filter(grepl("dysplasia",NoNegatives))
+
+
+if(!is.null(df$Image)){
+df$Image<-gsub("<img src=\'","",df$Image)
+df$Image<-gsub("'>","",df$Image)
+df$Image<-gsub("%20"," ",df$Image)
+df$Image<-gsub("!\\[\\]\\(",paste0("!\\[\\]\\(",here::here(),"/www/"),df$Image)
+df[,params$EndoscopistChooserIn]<-NULL
+names(df)<-c("Endoscopist","Findings","Histology","Postive Diagnoses only","Images")
+
+#Try to neaten up the Histology read-out:
+
+Histology<-gsub("^\\.\\s+","")
+
+names(df) <- pandoc.strong.return(names(df))
+pander(df[,1:5],justify = c('left'),split.table = Inf)
+} else {
+  df[,1]<-Hmisc::capitalize(as.character(df[,1]))
+df[,2]<-Hmisc::capitalize(as.character(df[,2]))
+df[,3]<-Hmisc::capitalize(as.character(df[,3]))
+  df[,params$EndoscopistChooserIn]<-NULL
+
+  names(df)<-c("Hospital No.","Findings","Histology","Postive Diagnoses only")
+  names(df) <- pandoc.strong.return(names(df))
+pander(df[,1:4],justify = c('left'),split.table = Inf)
+}
+    
+```
+
+<br>
+<br>
+<br>
+
+# All Diagnoses Table
+
+<br>
+<br>
+<br>
+
+```{r EverythingTable,warning=FALSE,echo=FALSE,warning=FALSE}
+df<-params$performanceTable
+df[,1]<-Hmisc::capitalize(as.character(df[,1]))
+df[,2]<-Hmisc::capitalize(as.character(df[,2]))
+df[,3]<-Hmisc::capitalize(as.character(df[,3]))
+
+#Need to split the sentence up so can do negative remove on each sentence.
+#Capitalise each sentence by simple gsubbing or recognition of a full stop (need to improve for bullet points though)
+standardisedTextOutput<-str_split(df[,3], "\\.")
+standardisedTextOutput<-lapply(standardisedTextOutput, function(x) NegativeRemove(x))
+#Then need to recombine into one text:
+
+df$NoNegatives<-sapply(standardisedTextOutput, function(x) paste(x,collapse="."))
+#df$NoNegatives
+    df<-df%>%filter(!grepl("adenocar|malign|cancer|dysplasia",NoNegatives))
+
+
+if(!is.null(df$Image)){
+df$Image<-gsub("<img src=\'","",df$Image)
+df$Image<-gsub("'>","",df$Image)
+df$Image<-gsub("%20"," ",df$Image)
+df$Image<-gsub("!\\[\\]\\(",paste0("!\\[\\]\\(",here::here(),"/www/"),df$Image)
+df[,params$EndoscopistChooserIn]<-NULL
+names(df)<-c("Endoscopist","Findings","Histology","Postive Diagnoses only","Images")
+
+#Try to neaten up the Histology read-out:
+
+Histology<-gsub("^\\.\\s+","")
+
+names(df) <- pandoc.strong.return(names(df))
+pander(df[,1:5],justify = c('left'),split.table = Inf)
+} else {
+  df[,1]<-Hmisc::capitalize(as.character(df[,1]))
+df[,2]<-Hmisc::capitalize(as.character(df[,2]))
+df[,3]<-Hmisc::capitalize(as.character(df[,3]))
+  df[,params$EndoscopistChooserIn]<-NULL
+
+  names(df)<-c("Hospital No.","Findings","Histology","Postive Diagnoses only")
+  names(df) <- pandoc.strong.return(names(df))
+pander(df[,1:4],justify = c('left'),split.table = Inf)
+}
+    
 ```
 \newpage
 ***
@@ -92,7 +208,7 @@ if(nrow(params$EndoscopyTypesDonePre)>0){
 key <- params$Map_EndoscopistIn
     if(!is.null(params$EndoscopistChooserIn)){
         if(length(params$EndoscopyTypesDonePre)>0){
-          p1<-gghistogram(params$EndoscopyTypesDonePre,title="Barrett's Histopathological Grade", x = "IMorNoIM",fill = "endoscopist", stat="count",font.xtickslab = c(14, "bold", "#2E9FDF"),font.ytickslab = c(14, "bold", "#2E9FDF"))+
+          p1<-gghistogram(params$EndoscopyTypesDonePre,title="Barrett's Histopathological Grade", x = "IMorNoIM",fill = params$Map_EndoscopistIn, stat="count",font.xtickslab = c(14, "bold", "#2E9FDF"),font.ytickslab = c(14, "bold", "#2E9FDF"))+
             guides(fill=FALSE)+
             theme(axis.title.x=element_blank())+
             theme(legend.position = "right")+
@@ -122,20 +238,34 @@ key <- params$Map_EndoscopistIn
             labs(y="% Reports")
       }
 
+
+ggarrange(p1,p2,ncol = 1, nrow = 2)
+
+}
+```
+
+```{r ExpectedNumberBarrettsBx, echo=FALSE, warning=FALSE,fig.width=7,fig.height=4,fig.align="center"}
+
 BarrettsCases<-params$EndoscopyTypesDonePre
 if(!is.null(BarrettsCases$NumBx)){
   if(!is.null(BarrettsCases$CStage)){
 ExpectedNumber <-BarrettsCases %>% summarise(MeanDiff = (sum(NumBx,na.rm=TRUE)-((mean(CStage,na.rm=TRUE)+1)*2)))
   }
 }
-ggarrange(p1,p2,ncol = 1, nrow = 2)
-
-}
 ```
 
 
 
-#   `r ifelse(exists("ExpectedNumber$MeanDiff"),paste0("On average you took",text_spec(ExpectedNumber$MeanDiff, color = "red"),"biopsies versus the expected number of biopsies you should have taken for your Barrett's cases."),"")`
+#   `r ifelse(is.numeric(ExpectedNumber$MeanDiff),paste0("On average you took ",text_spec(ExpectedNumber$MeanDiff, color = "red")," biopsies versus the expected number of biopsies you should have taken for your Barrett's cases."),"")`
+
+
+#   `r ifelse(min(mydf$PercentDocs<80),paste0("Some of your documentation for Barrett's was <80%. Documenting Barrett's anatomy helps in deciding follow-up timings for Barrett's patients. "),"")`
+
+## [BSG Barrett's Guidelines here](https://www.bsg.org.uk/wp-content/uploads/2019/12/BSG-guidelines-on-the-diagnosis-and-management-of-Barretts-oesophagus.pdf?x19508),
+
+
+
+
 
 \newpage
 ***
@@ -225,6 +355,9 @@ p4<-gghistogram(MyPolypTable, title="",x = "DocumentedElement", y = "percentage"
 p4
 }
 ```
+
+
+#   `r ifelse(min(MyPolypTable$percentage[1]<15),paste0("Your adenoma detection rate is <15%. There may be several reasons for this. Are you detecting enough right sided polyps (see table below). "),"")`
 
 ```{r figsPolpysLocation, echo=FALSE,warning=FALSE, fig.width=7,fig.height=4,fig.align="center"}
 if(nrow(params$polypLocationLowerGI)>0){

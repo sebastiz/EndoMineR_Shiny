@@ -21,7 +21,7 @@ library(shinyalert)
 library(shinycssloaders)
 library(here)
 library(shinyjqui)
-
+library(base64enc)
 
 
 # Define server logic required to draw a histogram
@@ -65,6 +65,14 @@ fieldsHistolNum<-c("Map_MacroscopicTextDelimIn")
 
 
 
+buttonHTML <- function(i){
+  as.character(
+    actionButton(
+      paste0("button_", i), label = "Report", 
+      onclick = sprintf("Shiny.setInputValue('button', %d);", i)           
+    )
+  )
+}
 
 
 ############## textPrep module   ###################################################### 
@@ -108,6 +116,51 @@ textPreparation <- function(input, output, session, datastuff) {
 
 server <- function(input, output,session) {
   
+  observeEvent(input[["button"]], {
+    showNotification("Creating letter...", type = "message")
+    tmpReport <- file.path(tempdir(), "letter.Rmd")
+    file.copy("letter.Rmd", tmpReport, overwrite = TRUE)
+    browser
+    outfile <- file.path(tempdir(), "letter.docx")
+    myData<-drilldataBarrd()
+    myData<-myData%>%select(HospitalNum,Date,FU_Type,TimeToNext)
+    rmarkdown::render(tmpReport, output_file = outfile, 
+           params = list(data = myData[input[["button"]], -ncol(myData)]),
+           envir = new.env(parent = globalenv()))
+     b64 <- dataURI(
+       file = outfile, 
+       mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+     )
+    session$sendCustomMessage("download", b64)
+  })
+  
+  
+  # observeEvent(input[["button"]], {
+  # 
+  #   # For PDF output, change this to "report.pdf"
+  #   filename = "report.docx"
+  #   content = function(file) {
+  #     # Copy the report file to a temporary directory before processing it, in
+  #     # case we don't have write permissions to the current working dir (which
+  #     # can happen when deployed).
+  #     tempReport <- file.path(tempdir(), "report.Rmd")
+  #     file.copy("report.Rmd", tempReport, overwrite = TRUE)
+  #     browser()
+  #     #drilldataBarrdf<-drilldataBarrd()
+  #     # Set up parameters to pass to Rmd document
+  #     params = list(MyLetter = drilldataBarrd()[input[["button"]], -ncol(drilldataBarrd())])
+  #     
+  #     # Knit the document, passing in the `params` list, and eval it in a
+  #     # child of the global environment (this isolates the code in the document
+  #     # from the code in this app).
+  #     rmarkdown::render(tempReport, output_file = file,
+  #                       params = params,
+  #                       envir = new.env(parent = globalenv())
+  #                       
+  #     )
+  #   }
+  #   
+  # })
   #Save data
   outputDir <- here::here("responses")
   
@@ -437,8 +490,6 @@ server <- function(input, output,session) {
   ########### Endotable events ############  
   
   
-  
-  
   ###########:::::Button-Date standardiser ###########
   
   #Standardise the date Dataset 1
@@ -488,26 +539,36 @@ server <- function(input, output,session) {
   observeEvent(input$Del_row_head,{
     row_to_del=as.numeric(gsub("Row","",input$checked_rows))
     RV3$data=RV3$data[-row_to_del,]}
+    #Consider copying this function so you can copy the row data to output a report based on it
   )
 
   
   
   
+ 
+ 
   
-  #Delete rows with the delete picker
+  #Controller for all the row buttons.
+  
   observeEvent(input$lastClick,
                {
+                
                  if (input$lastClickId%like%"delete")
                  {
+                   
                    row_to_del=as.numeric(gsub("delete_","",input$lastClickId))
                    RV3$data=RV3$data[-row_to_del,]
+
                  }
                  else if (input$lastClickId%like%"modify")
                  {
                    showModal(modal_modify)
                  }
+
                }
   )
+  
+  
   
   volumes = getVolumes()
   
@@ -931,7 +992,19 @@ server <- function(input, output,session) {
     #Polyp Processing:
     ForGRS$data<-RV3$data[grepl("colonoscopy",RV3$data[,input$Map_ProcedurePerformedIn]),]
     
-    
+    #Need to get rid of duplicate entries because of reporting colons and OGDs on the same report:
+    if("Select" %in% colnames(ForGRS$data)){
+      #Get rid of the Select and Actions columns which create a unique row unnecessarily:
+      ForGRS$data<-ForGRS$data%>%select(-Select,-Actions)
+      ForGRS$data<-ForGRS$data%>%select(-contains(".y"))
+
+      
+      
+      #Get rid of '.y' columns which are named this way to prevent duplicate named columns when endoscopy and pathology are merged-
+      #May need to deal with the column cleaning within EndoMineR itself but for now keep in the Shiny package.
+      ForGRS$data<-unique(ForGRS$data)
+    }
+      
     GRS_TableData$data<<-GRS_Type_Assess_By_Unit(ForGRS$data, input$Map_ProcedurePerformedIn,
                                                  input$Map_EndoscopistIn,
                                                  input$Map_MacroscopicTextIn,
@@ -1272,13 +1345,13 @@ server <- function(input, output,session) {
   
   #########::::: Working Table- BarrettsTable#############  
   
-  # observeEvent(input$BarrettsTable_columns_selected,{
-  #   #browser()
-  #   if (length(input$BarrettsTable_columns_selected)>1){
-  #     BarrTrim$data<- RV4$data[input$BarrettsTable_rows_all, input$BarrettsTable_columns_selected]
-  #   } else(BarrTrim$data<-NULL)
-  #   
-  # },ignoreInit = TRUE)
+  observeEvent(input$BarrettsTable_columns_selected,{
+    #browser()
+    if (length(input$BarrettsTable_columns_selected)>1){
+      BarrTrim$data<- RV4$data[input$BarrettsTable_rows_all, input$BarrettsTable_columns_selected]
+    } else(BarrTrim$data<-NULL)
+
+  },ignoreInit = TRUE)
   # 
   # 
   # #For the working set custom table- reactive to new columns
@@ -1317,7 +1390,7 @@ server <- function(input, output,session) {
     selected_species <- BarrDDR_TableData$data[as.integer(input$BarrDDR_Table_rows_selected), ]
     variables <-    c(t(selected_species[,1]))
     mycolname <- colnames(selected_species)[1]
-    browser()
+    #browser()
     df<-RV4$data[RV4$data[, mycolname] %in%  variables ,]
     df%>%select(input$Map_HospitalNumberIn,input$Map_EndoscopyDateIn,input$Map_FindingsIn, input$Map_MicroscopicTextIn,CStage,MStage,IMorNoIM,FU_Type,TimeToNext,contains("url"))
     
@@ -1325,53 +1398,20 @@ server <- function(input, output,session) {
   
   # display the subsetted data
   output$drilldownBarr <- DT::renderDT({
-    
-    #browser()
-    
-     # if (!is.null(drilldataBarrd())) {  
-     #   
-     #   
-     #   
-     #   drilldataBarrd()[["Select"]]<-paste0('<input type="checkbox" name="row_selected" value="Row',1:nrow(drilldataBarrd()),'"><br>')
-     #   
-     # drilldataBarrd()[["Actions"]]<-
-     #     paste0('
-     #            <div class="btn-group" role="group" aria-label="Basic example">
-     #            <button type="button" class="btn btn-secondary delete" id=delete_',1:nrow(drilldataBarrd()),'>Delete</button>
-     #            </div>
-     #            ')
-     # }
-     # 
-    
-    
-    
-    datatable(drilldataBarrd(),escape=F, extensions = c("Select","Buttons"), selection = "none",callback = JS( "var ncols = table.columns().count();",
-                                                                                                               "var tbl = table.table().node();",
-                                                                                                               "var tblID = $(tbl).closest('.datatables').attr('id');",
-                                                                                                               "table.on('click', 'tbody td', function(){",
-                                                                                                               "  // if the column is selected, deselect it:",
-                                                                                                               "  if(table.column(this, {selected: true}).length){",
-                                                                                                               "    table.column(this).deselect();",
-                                                                                                               "  // otherwise, select the column unless it's among the last two columns:",
-                                                                                                               "  } else if([ncols-1, ncols-2].indexOf(table.column(this).index()) === -1){",
-                                                                                                               "    table.column(this).select();",
-                                                                                                               "  }",
-                                                                                                               "  // send selected columns to Shiny",
-                                                                                                               "  var indexes = table.columns({selected:true}).indexes();",
-                                                                                                               "  var indices = Array(indexes.length);",
-                                                                                                               "  for(var i = 0; i < indices.length; ++i){",
-                                                                                                               "    indices[i] = indexes[i];",
-                                                                                                               "  }",
-                                                                                                               "  Shiny.setInputValue(tblID + '_columns_selected', indices);",
-                                                                                                               " var checkboxes = document.getElementsByName('row_selected');",
-                                                                                                               "  var checkboxesChecked = [];",
-                                                                                                               " for (var i=0; i<checkboxes.length; i++) {",
-                                                                                                               "    if (checkboxes[i].checked) {",
-                                                                                                               "   checkboxesChecked.push(checkboxes[i].value);",
-                                                                                                               "    }",
-                                                                                                               "   }",
-                                                                                                               " Shiny.onInputChange('checked_rows',checkboxesChecked);",
-                                                                                                               "});"),
+ 
+      if (!is.null(drilldataBarrd())) {  
+
+        browser()
+        drilldataBarrdf<-drilldataBarrd()
+        drilldataBarrdf$Actions<-sapply(1:nrow(drilldataBarrdf), buttonHTML)
+         #paste0('
+         #       <div class="btn-group" role="group" aria-label="Basic example">
+         #       <button type="button" class="btn btn-secondary letter" id=letter_',1:nrow(drilldataBarrd()),'>Letter</button>
+         #       </div>
+         #       ')
+     }
+
+    datatable(drilldataBarrdf,escape=F, extensions = c("Select","Buttons"), selection = "none",
               
               options = list(
                 scrollX = TRUE,
@@ -1382,6 +1422,9 @@ server <- function(input, output,session) {
                 buttons = c('copy', 'csv', 'excel', 'pdf', 'print','colvis'))
     )
   })
+  
+  
+  
   
   
   ############:::::  Vislualisation Esquiss ############
@@ -1461,7 +1504,7 @@ server <- function(input, output,session) {
             need(length(input$Map_EndoscopistIn) > 0, "Press Barr_DDR to get the plots")
           ) 
           key <- input$Map_EndoscopistIn
-          p<-ggplot(RV4$data,  aes_string(x = "endoscopist",fill="IMorNoIM")) + 
+          p<-ggplot(RV4$data,  aes_string(x = input$Map_EndoscopistIn,fill="IMorNoIM")) + 
             geom_histogram(stat = "count")+
             theme(axis.text.x=element_text(angle=-90))
           ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
@@ -1476,9 +1519,10 @@ server <- function(input, output,session) {
   
   
   output$BarrPivot <- renderRpivotTable({
-    if(!is.null(BarrTrim$data)){
+    browser()
+    #if(!is.null(BarrTrim$data)){
       rpivotTable(BarrTrim$data)
-    }
+    #}
   })
   
   
@@ -1878,8 +1922,8 @@ server <- function(input, output,session) {
   
   
   output$plotPolypEQ <- renderPlotly({
-    #Perform the lookup from EndoMiner for "[Ii]sland", Prague Score, "[Hh]iat|astric fold|[Pp]inch", "esion|odule|lcer"
-    if(!is.null(GRS_TableData$data)){
+
+        if(!is.null(GRS_TableData$data)){
       if(ncol(GRS_TableData$data>0)){
         if(nrow(GRS_TableData$data>0)){
           shiny::validate(
@@ -1888,6 +1932,8 @@ server <- function(input, output,session) {
           
           #Need to gather the table to make tidy for ggplot
           MyPolypTable<-tidyr::gather(GRS_TableData$data,key="DocumentedElement",value="percentage",-!!rlang::sym(input$Map_EndoscopistIn))
+          #Get rid of the overall number figure (=n)
+          MyPolypTable<-MyPolypTable%>%filter(!grepl("^n$",DocumentedElement))
           key <- input$Map_EndoscopistIn
           p <- ggplot(MyPolypTable, aes_string(x = key, 
                                                y = "percentage", fill = "DocumentedElement")) + 
@@ -2058,7 +2104,7 @@ server <- function(input, output,session) {
   output$GRS_perEndoscopistPlot = renderPlotly({
     
     if(!is.null(input$EndoscopistChooserIn)){
-      #browser()
+      
       MyPolypTable<-tidyr::gather(GRS_perEndoscopist_TablePrep(),key="DocumentedElement",value="percentage",-!!rlang::sym(input$Map_EndoscopistIn))
       key <- input$Map_EndoscopistIn
       lk<-ggplot(MyPolypTable, aes_string(x = "DocumentedElement",  y = "percentage")) + 
@@ -2098,6 +2144,7 @@ server <- function(input, output,session) {
     
   
   output$GRS_perEndoscopist_Table = DT::renderDT({
+    browser()
     if(!is.null(input$EndoscopistChooserIn)){
       GRS_perEndoscopist_TablePrep()
     }
@@ -2182,7 +2229,7 @@ server <- function(input, output,session) {
           if(!is.null(input$EndoscopistChooserIn)){
             key <- input$Map_EndoscopistIn
             p<-RV4$data %>% filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn) %>%
-              ggplot + aes_string(x = "IMorNoIM", fill = "endoscopist") + geom_histogram(stat = "count")
+              ggplot + aes_string(x = "IMorNoIM", fill = input$Map_EndoscopistIn) + geom_histogram(stat = "count")
             ggplotly(p,source = "subset",key=key) %>% layout(dragmode = "select")
           }
   })
@@ -2197,7 +2244,8 @@ server <- function(input, output,session) {
     myBx_df$indicationsforexamination<-gsub("^\\.","", myBx_df$indicationsforexamination)
     
     #Then get average per indication for that endoscopist
-    myBx_df$NumBx<-HistolNumbOfBx(myBx_df$macroscopicdescription, "pieces")
+    #input$Map_MacroscopicTextIn[,input$Map_IndicationsIn]
+    myBx_df$NumBx<-HistolNumbOfBx(myBx_df[,input$Map_MacroscopicTextIn], "pieces")
     cc<-myBx_df %>% filter(get(input$Map_EndoscopistIn)==input$EndoscopistChooserIn) %>%
       group_by(!!rlang::sym(input$Map_IndicationsIn)) %>%
       dplyr::summarise(endoscopist_Mean=mean(NumBx,na.rm=T))%>%
@@ -2304,7 +2352,7 @@ server <- function(input, output,session) {
   )
 
   
-
+ 
   
   
   output$Allreports <- downloadHandler(
