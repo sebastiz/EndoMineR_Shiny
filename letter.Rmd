@@ -11,33 +11,45 @@ params:
   data: "x"
 ---
 
-```{r setup, include=FALSE,echo=FALSE}
+```{r setup, include=FALSE,echo=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
+library(RODBC)
+ch<-odbcDriverConnect("DRIVER={SQL Server};SERVER=sv-te-hcadws01;Database=PAD")
+
+num<-params$data$HospitalNum
+
+
+sql<- paste0("
+SELECT        TRUST_NUM, Surname, forenames, TitleNM, NHS_TRACE_STATUS, ADDRESS_L1, ADDRESS_L2, NHS_Number, ADDRESS_L4, ADDRESS_L3, PostCode
+FROM            Clinical.PATIENTBASE
+WHERE        TRUST_NUM ='", num,"'")
+hi<-sqlQuery(ch, sql)
+hi
 ```
 
 ```{r,echo=FALSE,include = FALSE}
 params$data
 ```
 
-
-
-
+`r hi$forenames` `r hi$Surname` 
+\
+`r hi$ADDRESS_L1` 
+\
+`r hi$ADDRESS_L2` 
+\
+`r hi$ADDRESS_L4` 
+\
+`r hi$ADDRESS_L3` 
+\
+`r hi$PostCode`
+\
+\
 `r format(Sys.time(), " %d %B, %Y") `
 \
 \
-\
-`r params$data$Date` 
-\
-`r params$data$FU_Type`&nbsp;
-\
-`r params$data$Date`&nbsp;
-\
-`r params$data$FU_Type`&nbsp;
-\
-`r params$data$Date`&nbsp;
-\
 
-Dear `r params$data$HospitalNum`
+Hmisc::capitalize()
+Dear `r tolower(hi$forenames)` `r tolower(hi$Surname)`
 \
 
 I've now had a chance to look at the biopsies we took at endoscopy on `r params$data$Date`. These have shown no worrying cellular changes. I have therefore booked a further endoscopy which should take place around `r params$data$FU_Type`

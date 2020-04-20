@@ -120,7 +120,7 @@ server <- function(input, output,session) {
     showNotification("Creating letter...", type = "message")
     tmpReport <- file.path(tempdir(), "letter.Rmd")
     file.copy("letter.Rmd", tmpReport, overwrite = TRUE)
-    browser
+    browser()
     outfile <- file.path(tempdir(), "letter.docx")
     myData<-drilldataBarrd()
     myData<-myData%>%select(HospitalNum,Date,FU_Type,TimeToNext)
